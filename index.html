@@ -3,366 +3,334 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>韋伯工業區位理論｜互動教學（手機 1170×2532 優化）</title>
+<title>韋伯工業區位理論｜互動教學（正統判斷版）</title>
 <style>
   :root{
-    --bg:#0b1020; --panel:#111831; --ink:#e8eef6; --muted:#9fb0cf;
-    --accent:#4aa8ff; --ok:#22c55e; --warn:#f59e0b; --grid:#1b2338;
-    --chip:#0f1530; --chip-border:#1e2642;
+    --bg:#0e1621;
+    --panel:#121c29;
+    --chip:#192436;
+    --fg:#dbe7ff;
+    --muted:#9fb3d9;
+    --accent:#4ea1ff;
+    --good:#3ddc97;
+    --warn:#ffc857;
+    --bad:#ff6b6b;
+    --grid:#1b283a;
   }
   *{box-sizing:border-box}
-  html,body{height:100%}
-  body{
-    margin:0; background:var(--bg); color:var(--ink); font-family:ui-sans-serif,system-ui,-apple-system,"PingFang TC","Noto Sans TC",Segoe UI,Roboto,"Helvetica Neue",Arial,"Apple Color Emoji","Segoe UI Emoji";
-    -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+  html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);font:16px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans TC",Helvetica,Arial,"Apple Color Emoji","Segoe UI Emoji";}
+  .app{display:flex;flex-direction:column;height:100%;}
+  .topbar{display:flex;gap:.6rem;flex-wrap:wrap;align-items:center;padding:.5rem .75rem .25rem;}
+  .chip{background:var(--chip);border-radius:12px;padding:.35rem .6rem;font-weight:600;color:var(--fg);box-shadow:0 0 0 1px rgba(255,255,255,.05) inset}
+  .legend{display:flex;gap:1rem;align-items:center;flex:1;flex-wrap:wrap}
+  .dot{display:inline-block;width:.6rem;height:.6rem;border-radius:50%;margin-right:.35rem;vertical-align:-1px}
+  .btn{background:var(--chip);color:var(--fg);border:none;border-radius:12px;padding:.45rem .7rem;font-weight:700;cursor:pointer}
+  .btn:active{transform:translateY(1px)}
+  .canvasWrap{position:relative;flex:1;min-height:200px;padding:0 .5rem .25rem}
+  canvas{display:block;width:100%;height:100%;border-radius:14px;background:
+    radial-gradient(circle at 50% 50%, rgba(255,255,255,.02), transparent 60%),
+    linear-gradient(transparent 39px, var(--grid) 40px),
+    linear-gradient(90deg, transparent 39px, var(--grid) 40px),
+    var(--panel);
+    background-size:100% 100%, 40px 40px, 40px 40px, auto;
   }
-
-  /* === Layout ============================================================= */
-  .app{
-    display:flex; flex-direction:column; min-height:100vh; gap:8px;
-    padding:8px; padding-bottom:calc(env(safe-area-inset-bottom,0) + 8px);
+  .controls{display:grid;gap:.75rem;grid-template-columns:repeat(6, minmax(200px,1fr));padding:.6rem}
+  @media (max-width:1200px){
+    .controls{grid-template-columns:repeat(2,1fr)}
   }
-
-  /* HUD + Toggle */
-  .toprow{display:flex; align-items:center; gap:8px; flex-wrap:wrap}
-  .chip{
-    background:var(--chip); border:1px solid var(--chip-border);
-    padding:8px 12px; border-radius:12px; font-weight:600; letter-spacing:.3px;
-    box-shadow:0 0 0 1px rgba(255,255,255,.02) inset, 0 1px 6px rgba(0,0,0,.35);
+  @media (max-width:700px){
+    .controls{grid-template-columns:1fr}
   }
-  .toggle{
-    margin-left:auto; appearance:none; border:1px solid var(--chip-border);
-    background:linear-gradient(180deg,#1b2546,#121935);
-    color:var(--ink); padding:8px 12px; border-radius:12px; font-weight:700;
-    box-shadow:0 8px 20px rgba(0,0,0,.35); cursor:pointer;
-  }
-
-  .hud{display:flex; align-items:center; gap:8px; flex-wrap:wrap}
-  .hud.hidden{display:none}
-
-  .legend{
-    background:var(--chip); border:1px solid var(--chip-border);
-    padding:10px 12px; border-radius:12px; display:flex; gap:10px; align-items:center;
-  }
-  .lg{display:flex; align-items:center; gap:8px; font-weight:600}
-  .dot{width:10px; height:10px; border-radius:50%}
-  .d-red{background:#ef4444}
-  .d-cyan{background:#22d3ee}
-  .d-green{background:#22c55e}
-  .d-yellow{background:#f59e0b}
-  .d-iso{border:2px dashed #fbbf24; background:transparent; width:12px; height:12px; border-radius:50%}
-
-  /* === Viz (1170×2532 portrait ratio, centered) ========================== */
-  .viz-wrap{
-    /* 區塊高度：扣掉底下控制面板的預留高度（376px 近似手機UI） */
-    flex:1 1 auto; min-height:240px;
-    display:grid; place-items:center; overflow:hidden; border-radius:16px;
-    border:1px solid var(--chip-border);
-    background:
-      linear-gradient(transparent 31px, var(--grid) 32px),
-      linear-gradient(90deg, transparent 31px, var(--grid) 32px),
-      #0a0f20;
-    background-size:32px 32px, 32px 32px, auto;
-    position:relative;
-  }
-  /* 以 1170×2532（直式）當基準比例：寬 : 高 = 1170 : 2532 */
-  .viz-box{
-    position:relative;
-    aspect-ratio:1170/2532;        /* 保持直式比例 */
-    width: min(100vw - 16px, (1170/2532) * (100vh - 16px - 360px));
-    /* 16px 來自 .app padding，360px 給下方控制區。橫向時 width 會由 min() 自動限制。*/
-    max-height: calc(100vh - 16px - 360px);
-    display:grid; place-items:center;
-  }
-  canvas{width:100%; height:100%; display:block; border-radius:12px}
-
-  /* === Controls ========================================================== */
-  .controls{
-    display:grid; gap:10px; grid-template-columns:1fr 1fr;
-  }
-  @media (min-width:800px){ .controls{grid-template-columns:repeat(3,1fr)} }
-  @media (min-width:1100px){ .controls{grid-template-columns:repeat(6,1fr)} }
-
-  .card{
-    background:var(--panel); border:1px solid var(--chip-border);
-    padding:12px; border-radius:12px; box-shadow:0 8px 20px rgba(0,0,0,.35);
-  }
-  .card h4{margin:0 0 6px; font-size:14px; color:var(--muted)}
-  .row{display:flex; align-items:center; gap:10px}
-  .val{margin-left:auto; font-weight:700}
+  .ctl{background:var(--panel);border-radius:14px;padding:.8rem}
+  .ctl h4{margin:.1rem 0 .4rem;font-size:.95rem;color:var(--muted);font-weight:700}
+  .row{display:flex;gap:.8rem;align-items:center}
   input[type=range]{width:100%}
-  .btn{grid-column:1/-1; display:flex; gap:10px; justify-content:flex-start}
-  .btn button{
-    padding:10px 14px; border-radius:12px; border:1px solid var(--chip-border);
-    background:linear-gradient(180deg,#1b2546,#121935); color:var(--ink); font-weight:700;
-  }
+  .val{width:3.6rem;text-align:right;font-variant-numeric:tabular-nums;font-weight:800}
+  .note{color:var(--muted);font-size:.9rem}
 </style>
 </head>
 <body>
-  <div class="app">
-    <div class="toprow">
-      <div class="hud" id="hud">
-        <div class="chip">G <span id="gVal">3.00</span></div>
-        <div class="chip">K(P₀) <span id="kVal">0.0</span></div>
-        <div class="chip">ΔK(L) <span id="dVal">0.0</span></div>
-        <div class="legend">
-          <div class="lg"><span class="dot d-red"></span>M1 原料1</div>
-          <div class="lg"><span class="dot d-cyan"></span>M2 原料2</div>
-          <div class="lg"><span class="dot d-green"></span>K 消費地</div>
-          <div class="lg"><span class="dot d-yellow"></span>L 勞動地</div>
-          <div class="lg"><span class="d-iso"></span>臨界等費線 ΔK=S</div>
-        </div>
-      </div>
-      <button class="toggle" id="toggleHud" aria-controls="hud">隱藏指標/圖例</button>
+<div class="app">
+  <div class="topbar">
+    <span class="chip">G <span id="gval">0</span></span>
+    <span class="chip">K(P₀) <span id="kP0">0</span></span>
+    <span class="chip">ΔK(L) <span id="dkL">0</span></span>
+    <span class="chip" id="decision">決策：—</span>
+    <div class="legend" id="legend">
+      <span class="chip"><span class="dot" style="background:#ff5c5c"></span>M1 原料1</span>
+      <span class="chip"><span class="dot" style="background:#37d3e6"></span>M2 原料2</span>
+      <span class="chip"><span class="dot" style="background:#35e17a"></span>K 消費地</span>
+      <span class="chip"><span class="dot" style="background:#ffa62b"></span>L 勞動地</span>
+      <span class="chip"><span class="dot" style="background:transparent;border:2px dashed var(--warn);width:.8rem;height:.8rem"></span>臨界等費線 ΔK=S</span>
     </div>
+    <button class="btn" id="toggleIso">顯示/隱藏 臨界等費線</button>
+  </div>
 
-    <!-- 可視化（置中、等比縮放） -->
-    <div class="viz-wrap">
-      <div class="viz-box">
-        <canvas id="c"></canvas>
+  <div class="canvasWrap"><canvas id="c"></canvas></div>
+
+  <div class="controls">
+    <div class="ctl">
+      <h4>原料1權重 w1</h4>
+      <div class="row">
+        <input id="w1" type="range" min="0" max="5" step="0.1" value="1"/>
+        <div class="val" id="w1v">1.0</div>
       </div>
     </div>
-
-    <!-- 控制列（簡化） -->
-    <div class="controls">
-      <div class="card">
-        <h4>原料1權重 w1</h4>
-        <div class="row"><input id="w1" type="range" min="0" max="3" step="0.1" value="1"><div class="val" id="w1v">1.0</div></div>
+    <div class="ctl">
+      <h4>原料2權重 w2</h4>
+      <div class="row">
+        <input id="w2" type="range" min="0" max="5" step="0.1" value="1.5"/>
+        <div class="val" id="w2v">1.5</div>
       </div>
-      <div class="card">
-        <h4>原料2權重 w2</h4>
-        <div class="row"><input id="w2" type="range" min="0" max="3" step="0.1" value="1.5"><div class="val" id="w2v">1.5</div></div>
+    </div>
+    <div class="ctl">
+      <h4>消費地權重 wK</h4>
+      <div class="row">
+        <input id="wK" type="range" min="0" max="5" step="0.1" value="1"/>
+        <div class="val" id="wKv">1.0</div>
       </div>
-      <div class="card">
-        <h4>消費地權重 wK</h4>
-        <div class="row"><input id="wK" type="range" min="0" max="3" step="0.1" value="1"><div class="val" id="wKv">1.0</div></div>
+    </div>
+    <div class="ctl">
+      <h4>費率 As（噸公里成本）</h4>
+      <div class="row">
+        <input id="as" type="range" min="0.2" max="3" step="0.05" value="1.0"/>
+        <div class="val" id="asv">1.00</div>
       </div>
-      <div class="card">
-        <h4>費率 As（噸公里成本）</h4>
-        <div class="row"><input id="As" type="range" min="0.5" max="3" step="0.05" value="1.0"><div class="val" id="Asv">1.00</div></div>
+    </div>
+    <div class="ctl">
+      <h4>勞動節約 S（每單位）</h4>
+      <div class="row">
+        <!-- 唯一修改：max="40" -->
+        <input id="S" type="range" min="0" max="40" step="0.01" value="0.8"/>
+        <div class="val" id="Sv">0.80</div>
       </div>
-      <div class="card">
-        <h4>勞動節約 S（每單位）</h4>
-        <div class="row"><input id="S" type="range" min="0" max="0.5" step="0.005" value="0.035"><div class="val" id="Sv">0.035</div></div>
-      </div>
-      <div class="card">
-        <h4>縮放 Zoom</h4>
-        <div class="row"><input id="zoom" type="range" min="0.4" max="1.2" step="0.01" value="0.6"><div class="val" id="zoomv">0.60</div></div>
-      </div>
-      <div class="btn">
-        <button id="toggleIso">顯示/隱藏 臨界等費線</button>
+      <div class="note">正統規則：若 <b>S ≥ ΔK(L)</b>，工廠搬到 L；否則留在 P₀。</div>
+    </div>
+    <div class="ctl">
+      <h4>縮放 Zoom</h4>
+      <div class="row">
+        <input id="zoom" type="range" min="0.2" max="10" step="0.05" value="0.9"/>
+        <div class="val" id="zoomv">0.90</div>
       </div>
     </div>
   </div>
+</div>
 
 <script>
-(() => {
-  /* ====== Canvas init (1170×2532 portrait logical space) ================= */
-  const canvas = document.getElementById('c');
-  const ctx = canvas.getContext('2d');
-  const DPR = Math.max(1, Math.min(3, window.devicePixelRatio || 1));
-  const LOGICAL_W = 1170, LOGICAL_H = 2532; // portrait ratio baseline
+(()=>{
 
-  function resizeCanvas(){
-    // 依 .viz-box 實際像素大小來設定 backing store 大小
-    const box = canvas.parentElement.getBoundingClientRect();
-    canvas.width  = Math.round(box.width  * DPR);
-    canvas.height = Math.round(box.height * DPR);
-    ctx.setTransform(DPR,0,0,DPR,0,0);
-    draw();
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d', { alpha: true });
+let W=0,H=0, DPR = Math.max(1, devicePixelRatio || 1);
+let zoom = +document.getElementById('zoom').value;
+
+const colors = {
+  M1:'#ff5c5c',
+  M2:'#37d3e6',
+  K :'#35e17a',
+  L :'#ffa62b',
+  P :'#ffffff',
+  iso:'#ffc857'
+};
+
+const UI = {
+  w1: document.getElementById('w1'),
+  w2: document.getElementById('w2'),
+  wK: document.getElementById('wK'),
+  as: document.getElementById('as'),
+  S : document.getElementById('S'),
+  zoom: document.getElementById('zoom'),
+  w1v: document.getElementById('w1v'),
+  w2v: document.getElementById('w2v'),
+  wKv: document.getElementById('wKv'),
+  asv: document.getElementById('asv'),
+  Sv : document.getElementById('Sv'),
+  zoomv: document.getElementById('zoomv'),
+  gval: document.getElementById('gval'),
+  kP0 : document.getElementById('kP0'),
+  dkL : document.getElementById('dkL'),
+  decision: document.getElementById('decision'),
+  toggleIso: document.getElementById('toggleIso')
+};
+
+let showIso = false;
+
+const Pts = {
+  M1: {x:-300, y:-150, key:'M1'},
+  M2: {x: 300, y:-150, key:'M2'},
+  K : {x:   40, y: 220, key:'K'  },
+  L : {x:-160, y: 180, key:'L'  }
+};
+
+function resize(){
+  const rect = canvas.parentElement.getBoundingClientRect();
+  W = Math.floor(rect.width);
+  H = Math.floor(rect.height);
+  canvas.width = Math.floor(W*DPR);
+  canvas.height= Math.floor(H*DPR);
+  canvas.style.width = W+'px';
+  canvas.style.height= H+'px';
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  draw();
+}
+addEventListener('resize', resize, {passive:true});
+resize();
+
+function dist(a,b){ const dx=a.x-b.x, dy=a.y-b.y; return Math.hypot(dx,dy); }
+function Kcost(P){
+  const w1=+UI.w1.value, w2=+UI.w2.value, wK=+UI.wK.value, As=+UI.as.value;
+  return As*( w1*dist(P, Pts.M1) + w2*dist(P, Pts.M2) + wK*dist(P, Pts.K) );
+}
+function weiszfeld(){
+  const w1=+UI.w1.value, w2=+UI.w2.value, wK=+UI.wK.value;
+  let p = {x:(Pts.M1.x+Pts.M2.x+Pts.K.x)/3, y:(Pts.M1.y+Pts.M2.y+Pts.K.y)/3};
+  for(let it=0; it<100; it++){
+    const d1 = Math.max(1e-6, dist(p, Pts.M1));
+    const d2 = Math.max(1e-6, dist(p, Pts.M2));
+    const dK = Math.max(1e-6, dist(p, Pts.K ));
+    const numx = w1*Pts.M1.x/d1 + w2*Pts.M2.x/d2 + wK*Pts.K.x/dK;
+    const numy = w1*Pts.M1.y/d1 + w2*Pts.M2.y/d2 + wK*Pts.K.y/dK;
+    const den  = w1/d1 + w2/d2 + wK/dK;
+    const nx = numx/den, ny=numy/den;
+    if (Math.hypot(nx-p.x, ny-p.y) < 1e-4) { p.x=nx; p.y=ny; break; }
+    p.x=nx; p.y=ny;
   }
-  new ResizeObserver(resizeCanvas).observe(canvas.parentElement);
+  return p;
+}
+function deltaKAt(P, P0){ return Kcost(P) - Kcost(P0); }
 
-  /* ====== Model =========================================================== */
-  // 可拖曳點：M1, M2, K, L, P (P 為白色)
-  const Pts = {
-    M1: {x: 150, y: 420, color:'#ef4444'},
-    M2: {x: 980, y: 460, color:'#22d3ee'},
-    K : {x: 560, y: 1650, color:'#22c55e'},
-    L : {x: 260, y: 1500, color:'#f59e0b'},
-    P : {x: 600, y: 980, color:'#ffffff'} // 可拖曳，白色
-  };
-
-  // 參數
-  const ui = {
-    w1: bind('w1','w1v',v(+v,1)),
-    w2: bind('w2','w2v',v(+v,1)),
-    wK: bind('wK','wKv',v(+v,1)),
-    As: bind('As','Asv',v(+v,2)),
-    S : bind('S','Sv',v(+v,3)),
-    zoom: bind('zoom','zoomv',v(+v,2)),
-  };
-  function v(x,fix){ return (n)=> (document.getElementById(x), n.toFixed(fix)); }
-
-  // 顯示/隱藏 HUD
-  const hud = document.getElementById('hud');
-  document.getElementById('toggleHud').addEventListener('click', ()=>{
-    hud.classList.toggle('hidden');
-  });
-
-  let showIso = true;
-  document.getElementById('toggleIso').addEventListener('click', ()=>{ showIso=!showIso; draw(); });
-
-  // 簡易繫結：更新顯示並重繪
-  function bind(id, vid, fmt){
-    const el = document.getElementById(id);
-    const lbl = document.getElementById(vid);
-    const set = ()=>{ lbl.textContent = fmt(parseFloat(el.value)); draw(); };
-    el.addEventListener('input', set);
-    set();
-    return el;
-  }
-
-  /* ====== 核心計算（Weiszfeld 最小化 ∑w·d，K 費率 As） ================= */
-  function dist(a,b){ const dx=a.x-b.x, dy=a.y-b.y; return Math.hypot(dx,dy); }
-
-  function weberMin(start){
-    // Weiszfeld：最小化 w1 d(P,M1)+w2 d(P,M2)+wK d(P,K)
-    let p = {x:start.x, y:start.y};
-    const W = [
-      {pt:Pts.M1, w:+ui.w1.value},
-      {pt:Pts.M2, w:+ui.w2.value},
-      {pt:Pts.K , w:+ui.wK.value},
-    ];
-    for(let i=0;i<80;i++){
-      let numX=0, numY=0, den=0, stuck=false;
-      for(const {pt,w} of W){
-        const d = dist(p,pt);
-        if(d<1e-6){ stuck=true; continue; }
-        const q = w/d;
-        numX += pt.x*q; numY += pt.y*q; den += q;
-      }
-      if(!den || stuck) break;
-      const nx = numX/den, ny = numY/den;
-      if(Math.hypot(nx-p.x, ny-p.y)<0.01) break;
-      p.x = nx; p.y = ny;
+function buildIso(P0, S){
+  const pts = [];
+  const maxR = 4000;
+  const steps = 144;
+  for(let i=0;i<steps;i++){
+    const ang = (i/steps)*Math.PI*2;
+    let lo=0, hi=maxR, mid, tries=0;
+    if (deltaKAt({x:P0.x+hi*Math.cos(ang), y:P0.y+hi*Math.sin(ang)}, P0) < S) continue;
+    while(hi-lo>1e-2 && tries++<40){
+      mid=(lo+hi)/2;
+      const P={x:P0.x+mid*Math.cos(ang), y:P0.y+mid*Math.sin(ang)};
+      const d=deltaKAt(P,P0);
+      if(d>=S) hi=mid; else lo=mid;
     }
-    return p;
+    const r=hi;
+    pts.push({x:P0.x+r*Math.cos(ang), y:P0.y+r*Math.sin(ang)});
   }
+  return pts;
+}
 
-  function Kcost(P){
-    const As = +ui.As.value;
-    const w1=+ui.w1.value, w2=+ui.w2.value, wK=+ui.wK.value;
-    return As*(w1*dist(P,Pts.M1) + w2*dist(P,Pts.M2) + wK*dist(P,Pts.K));
+let dragKey=null;
+function pick(mx,my){
+  const p = scr2log({x:mx,y:my});
+  const order=['M1','M2','K','L'];
+  let found=null, best=1e9;
+  for(const k of order){
+    const d=dist(p, Pts[k]);
+    if(d<18/zoom && d<best){best=d;found=k;}
   }
+  return found;
+}
+function onDown(e){
+  const t = e.touches? e.touches[0]: e;
+  dragKey = pick(t.clientX, t.clientY);
+}
+function onMove(e){
+  if(!dragKey) return;
+  const t = e.touches? e.touches[0]: e;
+  const p = scr2log({x:t.clientX, y:t.clientY});
+  Pts[dragKey].x = p.x;
+  Pts[dragKey].y = p.y;
+  draw();
+}
+function onUp(){ dragKey=null; }
+canvas.addEventListener('mousedown', onDown);
+canvas.addEventListener('mousemove', onMove);
+addEventListener('mouseup', onUp);
+canvas.addEventListener('touchstart', onDown, {passive:true});
+canvas.addEventListener('touchmove', onMove, {passive:true});
+addEventListener('touchend', onUp);
 
-  /* ====== Dragging ======================================================== */
-  let dragging=null, dragOff={x:0,y:0};
-  canvas.addEventListener('pointerdown',(e)=>{
-    const p = toLocal(e);
-    const pick = pickPoint(p.x,p.y);
-    if(pick){ dragging=pick; dragOff.x = pick.x - p.x; dragOff.y = pick.y - p.y; canvas.setPointerCapture(e.pointerId); }
-  });
-  canvas.addEventListener('pointermove',(e)=>{
-    if(!dragging) return;
-    const p = toLocal(e);
-    dragging.x = clamp(p.x + dragOff.x, 0, LOGICAL_W);
-    dragging.y = clamp(p.y + dragOff.y, 0, LOGICAL_H);
-    draw();
-  });
-  canvas.addEventListener('pointerup',()=> dragging=null);
-  function toLocal(e){
-    const r = canvas.getBoundingClientRect();
-    const x = (e.clientX - r.left) * (LOGICAL_W / r.width);
-    const y = (e.clientY - r.top ) * (LOGICAL_H / r.height);
-    return {x,y};
-  }
-  function clamp(v,a,b){ return Math.max(a, Math.min(b,v)); }
-  function pickPoint(x,y){
-    // 只允許拖 P、M1、M2、K、L（你若只想拖 P，把下面 array 換成 ['P']）
-    const keys = ['P','M1','M2','K','L'];
-    for(const k of keys){
-      const p = Pts[k];
-      if(Math.hypot(x-p.x, y-p.y) < 42) return p;
-    }
-    return null;
-  }
+function log2scr(p){ return { x: W/2 + p.x*zoom, y: H/2 + p.y*zoom }; }
+function scr2log(p){ return { x: (p.x - W/2)/zoom, y: (p.y - H/2)/zoom }; }
 
-  /* ====== Draw ============================================================ */
-  function draw(){
-    // 基準縮放（視覺縮放）不改變邏輯尺寸，只改變繪圖座標
-    const z = +ui.zoom.value;
-    const W = LOGICAL_W, H = LOGICAL_H;
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-    ctx.save();
-    // 置中縮放（把 1170×2532 放進畫布，並置中）
-    const box = canvas.getBoundingClientRect();
-    const sx = box.width / W, sy = box.height / H;
-    const sc = Math.min(sx, sy) * z;
-    const offX = (box.width/sc - W)/2;
-    const offY = (box.height/sc - H)/2;
-    ctx.scale(sc, sc);
-    ctx.translate(offX, offY);
+function dot(p, color, r=6){
+  const s = log2scr(p);
+  ctx.beginPath();
+  ctx.arc(s.x, s.y, r, 0, Math.PI*2);
+  ctx.fillStyle = color;
+  ctx.fill();
+}
+function seg(a,b, color, w=2, alpha=0.35){
+  const A=log2scr(a), B=log2scr(b);
+  ctx.strokeStyle = color;
+  ctx.globalAlpha = alpha;
+  ctx.lineWidth = w;
+  ctx.beginPath(); ctx.moveTo(A.x,A.y); ctx.lineTo(B.x,B.y); ctx.stroke();
+  ctx.globalAlpha = 1;
+}
+function label(p, text, color){
+  const s = log2scr(p);
+  ctx.font = '12px system-ui, -apple-system, "Noto Sans TC"';
+  ctx.fillStyle = color;
+  ctx.fillText(text, s.x+8, s.y-8);
+}
+function drawIsoCurve(P0,S){
+  if(!showIso) return;
+  const iso = buildIso(P0, S);
+  if(!iso.length) return;
+  ctx.setLineDash([6,6]);
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = '#ffc857';
+  ctx.beginPath();
+  const s0=log2scr(iso[0]); ctx.moveTo(s0.x, s0.y);
+  for(let i=1;i<iso.length;i++){ const s=log2scr(iso[i]); ctx.lineTo(s.x,s.y); }
+  ctx.closePath(); ctx.stroke();
+  ctx.setLineDash([]);
+}
+function draw(){
+  zoom = +UI.zoom.value;
+  ctx.clearRect(0,0,W,H);
 
-    // 運輸最小點 P0（灰白）
-    const P0 = weberMin(Pts.P);
-    // 成本
-    const KP0 = Kcost(P0);
-    const dKL = KP0 - Kcost(Pts.L) - (+ui.S.value * 1000); // 將 S 略放大到視覺上較明顯（教學用）
-    document.getElementById('gVal').textContent = (+ui.w1.value + +ui.w2.value + +ui.wK.value).toFixed(2);
-    document.getElementById('kVal').textContent = KP0.toFixed(1);
-    document.getElementById('dVal').textContent = dKL.toFixed(1);
+  const P0 = weiszfeld();
+  const Sval = +UI.S.value;
+  const dKL = deltaKAt(Pts.L, P0);
+  const moveToL = (Sval >= dKL - 1e-9);
+  const Pcur = moveToL ? Pts.L : P0;
 
-    // 連線
-    ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(255,255,255,.25)';
-    ctx.beginPath();
-    ctx.moveTo(Pts.M1.x, Pts.M1.y); ctx.lineTo(P0.x, P0.y);
-    ctx.moveTo(Pts.M2.x, Pts.M2.y); ctx.lineTo(P0.x, P0.y);
-    ctx.moveTo(Pts.K.x , Pts.K.y ); ctx.lineTo(Pts.P.x, Pts.P.y); // 用戶設定的 P 的參考線
-    ctx.stroke();
+  drawIsoCurve(P0, Sval);
 
-    // 臨界等費線（粗略：以 ΔK=S 估計一條不規則等距線）
-    if(showIso){
-      const base = Kcost(P0);
-      const S = +ui.S.value * 1000; // 放大以利可見
-      const steps = 220;
-      ctx.setLineDash([8,6]); ctx.lineWidth=2; ctx.strokeStyle='#fbbf24';
-      ctx.beginPath();
-      for(let a=0;a<=steps;a++){
-        const t = a/steps*Math.PI*2;
-        const r = 260; // 基礎半徑
-        const x = P0.x + Math.cos(t)*r;
-        const y = P0.y + Math.sin(t)*r;
-        // 用費率差做抖動讓形狀不規則（視覺教學）
-        const k = Kcost({x,y});
-        const d = k - base;
-        const f = 1 + 0.15*Math.sin(t*7);
-        const rr = r * (1 + (S - d)/800) * f;
-        const xx = P0.x + Math.cos(t)*rr;
-        const yy = P0.y + Math.sin(t)*rr;
-        if(a===0) ctx.moveTo(xx,yy); else ctx.lineTo(xx,yy);
-      }
-      ctx.closePath(); ctx.stroke(); ctx.setLineDash([]);
-    }
+  seg(Pcur, Pts.M1, colors.M1, 2.5);
+  seg(Pcur, Pts.M2, colors.M2, 2.5);
+  seg(Pcur, Pts.K , colors.K , 2.5);
 
-    // 點與標籤
-    function dot(p, color, name){
-      ctx.fillStyle = color; ctx.strokeStyle='rgba(255,255,255,.5)';
-      ctx.beginPath(); ctx.arc(p.x,p.y,16,0,Math.PI*2); ctx.fill();
-      ctx.lineWidth=1.5; ctx.stroke();
-      ctx.fillStyle='rgba(255,255,255,.85)'; ctx.font='24px ui-sans-serif'; ctx.fillText(name, p.x+18, p.y-18);
-    }
-    dot(Pts.M1, Pts.M1.color, 'M1');
-    dot(Pts.M2, Pts.M2.color, 'M2');
-    dot(Pts.K , Pts.K.color , 'K');
-    dot(Pts.L , Pts.L.color , 'L');
+  dot(Pts.M1, colors.M1, 6); label(Pts.M1,'M1',colors.M1);
+  dot(Pts.M2, colors.M2, 6); label(Pts.M2,'M2',colors.M2);
+  dot(Pts.K , colors.K ,  6); label(Pts.K ,'K',  colors.K );
+  dot(Pts.L , colors.L ,  6); label(Pts.L ,'L',  colors.L );
+  dot(Pcur, colors.P, 7); label(Pcur, 'P', colors.P);
 
-    // P0（計算得出的運輸最小點，灰白實心）
-    ctx.fillStyle='#e5e7eb'; ctx.strokeStyle='rgba(255,255,255,.7)';
-    ctx.beginPath(); ctx.arc(P0.x,P0.y,18,0,Math.PI*2); ctx.fill(); ctx.lineWidth=2; ctx.stroke();
-    ctx.fillStyle='rgba(255,255,255,.8)'; ctx.font='24px ui-sans-serif'; ctx.fillText('P₀', P0.x+20, P0.y-16);
+  UI.w1v.textContent = (+UI.w1.value).toFixed(1);
+  UI.w2v.textContent = (+UI.w2.value).toFixed(1);
+  UI.wKv.textContent = (+UI.wK.value).toFixed(1);
+  UI.asv.textContent = (+UI.as.value).toFixed(2);
+  UI.Sv .textContent = Sval.toFixed(2);
+  UI.zoomv.textContent = (+UI.zoom.value).toFixed(2);
 
-    // P（使用者可拖曳的決策點，**白色**）
-    ctx.fillStyle='#ffffff';
-    ctx.beginPath(); ctx.arc(Pts.P.x,Pts.P.y,14,0,Math.PI*2); ctx.fill();
-    ctx.strokeStyle='rgba(255,255,255,.6)'; ctx.lineWidth=1.5; ctx.stroke();
-    ctx.fillStyle='rgba(255,255,255,.9)'; ctx.fillText('P', Pts.P.x+18, Pts.P.y-10);
+  const G = (+UI.w1.value) + (+UI.w2.value) + (+UI.wK.value);
+  document.getElementById('gval').textContent = G.toFixed(2);
+  document.getElementById('kP0').textContent = Kcost(P0).toFixed(1);
+  document.getElementById('dkL').textContent = dKL.toFixed(1);
+  const dec = document.getElementById('decision');
+  dec.textContent = '決策：' + (moveToL ? '移至 L' : '留在 P₀');
+  dec.style.background = moveToL ? 'var(--good)' : 'var(--chip)';
+  dec.style.color = moveToL ? '#00170b' : 'var(--fg)';
+}
 
-    ctx.restore();
-  }
+['w1','w2','wK','as','S','zoom'].forEach(id=>{
+  UI[id].addEventListener('input', draw, {passive:true});
+});
+UI.toggleIso.addEventListener('click', ()=>{ showIso = !showIso; draw(); });
 
-  // 初始繪圖
-  resizeCanvas();
 })();
 </script>
 </body>
