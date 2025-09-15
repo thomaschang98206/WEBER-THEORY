@@ -6,18 +6,23 @@
 <title>韋伯工業區位理論｜互動教學（手機優化）</title>
 <style>
   :root{ --bg:#0b1020; --panel:#111831; --ink:#e8eefc; --muted:#9fb0d7; --accent:#ffd166;
-         --m1:#ef4444; --m2:#06b6d4; --k:#22c55e; --l:#f59e0b; }
+         --m1:#ef4444; --m2:#06b6d4; --k:#22c55e; --l:#f59e0b }
   *{box-sizing:border-box}
   html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);
             font:16px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Arial,"Noto Sans TC","PingFang TC",sans-serif}
   .wrap{display:flex;flex-direction:column;min-height:100dvh}
-  #stage{position:relative;width:100%;aspect-ratio:1170/700;max-height:60vh;border-bottom:1px solid rgba(255,255,255,.08)}
+  /* 畫布：稍微降低高度，避免手機首屏被控件擠壓 */
+  #stage{position:relative;width:100%;aspect-ratio:1170/700;max-height:58vh;
+         border-bottom:1px solid rgba(255,255,255,.08)}
   canvas{display:block;width:100%;height:100%}
-  .toolbar{position:absolute;left:8px;top:8px;display:flex;gap:6px;flex-wrap:wrap}
+  /* HUD：預設在上方；完全不吃觸控事件 */
+  .toolbar{position:absolute;left:8px;top:calc(8px + env(safe-area-inset-top));display:flex;
+           gap:6px;flex-wrap:wrap;pointer-events:none}
   .chip{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(6px);
         padding:6px 10px;border-radius:999px;font-size:12px}
-  .legend{position:absolute;right:8px;top:8px;background:rgba(10,12,18,.75);backdrop-filter:blur(4px);
-          border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:8px 10px;font-size:12px}
+  .legend{position:absolute;right:8px;top:calc(8px + env(safe-area-inset-top));background:rgba(10,12,18,.75);
+          backdrop-filter:blur(4px);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:8px 10px;
+          font-size:12px;pointer-events:none}
   .legend i{display:inline-block;width:10px;height:10px;margin-right:6px;border-radius:50%}
   .legend .m1{background:#ef4444}.legend .m2{background:#06b6d4}.legend .k{background:#22c55e}.legend .l{background:#f59e0b}
   .legend .iso{display:inline-block;width:18px;height:0;border-top:2px dashed var(--accent)}
@@ -39,6 +44,11 @@
   .sheet p,.sheet li{font-size:14px;color:#d6ddf5}
   .sheet.open{transform:translateY(0);pointer-events:auto}
   .sheet.closed{pointer-events:none}
+  /* 手機：將 HUD 改放到底部，避開頂部 UI；並吃 safe-area bottom */
+  @media (max-width: 640px){
+    .toolbar{top:auto;bottom:calc(8px + env(safe-area-inset-bottom))}
+    .legend{top:auto;bottom:calc(8px + env(safe-area-inset-bottom))}
+  }
   @media (min-width:900px){
     #stage{max-height:66vh}
     .grid{grid-template-columns:repeat(4,1fr)}
@@ -81,7 +91,7 @@
   <div class="handle" id="handle"></div>
   <div class="content">
     <h2>怎麼讀這個圖？</h2>
-    <p>紅 <b>M1</b>、藍 <b>M2</b>、綠 <b>K</b> 是兩種原料與消費地；白 <b>P₀</b> 是只看運輸成本的最小點；若把 <b>L</b> 拖進臨界線內且 <code>ΔK(L) ≤ S</code>，工廠就會搬到 <b>L</b>。</p>
+    <p>紅 <b>M1</b>、藍 <b>M2</b>、綠 <b>K</b> 是兩種原料與消費地；白 <b>P₀</b> 是只看運輸成本的最小點；把 <b>L</b> 拖進黃虛線（ΔK=S）且 <code>ΔK(L) ≤ S</code>，工廠就搬到 <b>L</b>（畫面上的 P 仍為白色）。</p>
     <ul>
       <li>黑雲：<code>ΔK(x)=K(x)-K(P₀)</code>，越黑＝偏離成本越高。</li>
       <li>黃虛線：<b>臨界等費線</b>，滿足 <code>ΔK=S</code>。把 <b>L</b> 拖進圈 ⇒ 會搬；拖到圈外 ⇒ 不搬。</li>
@@ -219,6 +229,7 @@
     ctx.clearRect(0,0,cv.width,cv.height);
     ctx.setTransform(DPR*view.z,0,0,DPR*view.z,0,0);
 
+    // 背景格
     ctx.strokeStyle='rgba(255,255,255,.05)'; ctx.lineWidth=1/DPR;
     ctx.beginPath(); const gh=32; 
     for(let x=0;x<cv.width/(DPR*view.z);x+=gh){ctx.moveTo(x,0);ctx.lineTo(x,cv.height/(DPR*view.z));}
@@ -229,27 +240,27 @@
     drawHeat(p0);
     const iso=drawIso(p0);
 
+    // 三角形
     ctx.strokeStyle='rgba(59,130,246,.9)'; ctx.lineWidth=1.8/DPR;
     ctx.beginPath(); ctx.moveTo(Pts.M1.x,Pts.M1.y); ctx.lineTo(Pts.M2.x,Pts.M2.y); ctx.lineTo(Pts.K.x,Pts.K.y); ctx.closePath(); ctx.stroke();
 
+    // 標點
     drawDot(Pts.M1,'M1', '#ef4444'); drawDot(Pts.M2,'M2', '#06b6d4');
     drawDot(Pts.K ,'K' , '#22c55e'); drawDot(Pts.L ,'L' , '#f59e0b');
 
-    // ==== P（永遠白色）。若決策搬到 L，外圈加金色環 ====
+    // P 永遠白色；若決策搬到 L，外圈加金色提示環
     const moveToL = iso.inside;
     const Pcur = moveToL ? Pts.L : p0;
-    // 實心白點
     ctx.fillStyle = '#ffffff';
     ctx.beginPath(); ctx.arc(Pcur.x, Pcur.y, 6, 0, Math.PI*2); ctx.fill();
-    // 若搬到 L，用金色細環提示
     if (moveToL){
       ctx.strokeStyle = 'rgba(245,158,11,.9)';
       ctx.lineWidth = 2/DPR;
       ctx.beginPath(); ctx.arc(Pcur.x, Pcur.y, 10, 0, Math.PI*2); ctx.stroke();
     }
     ctx.fillStyle='#fff'; ctx.font='12px system-ui'; ctx.fillText('P', Pcur.x+10, Pcur.y-10);
-    // =====================================================
 
+    // HUD（不吃觸控）
     chips.innerHTML='';
     chip('G', (Pts.M1.w+Pts.M2.w+Pts.K.w).toFixed(2));
     chip('K(P₀)', Kcost(p0).toFixed(1));
@@ -260,10 +271,12 @@
   function chip(label, val){ const d=document.createElement('div'); d.className='chip'; d.innerHTML=`<b>${label}</b> ${val}`; chips.appendChild(d); }
 
   function drawDot(pt, name, color){
+    const DPR = Math.max(1, window.devicePixelRatio||1);
     ctx.fillStyle=color; ctx.beginPath(); ctx.arc(pt.x,pt.y,6,0,Math.PI*2); ctx.fill();
     ctx.fillStyle='rgba(255,255,255,.9)'; ctx.font='12px system-ui'; ctx.fillText(name, pt.x+9, pt.y-9);
   }
 
+  // 拖曳
   let dragging=null, off={x:0,y:0};
   cv.addEventListener('pointerdown', e=>{
     const p = toWorld(getMouse(e));
