@@ -2,790 +2,358 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-  <title>韋伯工業區位理論｜互動教學</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>韋伯工業區位理論｜互動教學（手機優先）</title>
   <style>
     :root{
-      --bg:#0b0d10;--panel:#12161b;--ink:#e7edf3;--muted:#9fb2c7;--accent:#4cc9f0;--ok:#67e8f9;--warn:#fbbf24;--bad:#fb7185;
-      --grid:#1f2937;--iso:#3b82f6;--labor:#eab308;--mat:#a78bfa;--cons:#34d399;--p:#f472b6;
+      --bg:#0b1020; --panel:#111831; --ink:#e8eefc; --muted:#9fb0d7; --accent:#ffd166;
+      --m1:#ef4444; --m2:#06b6d4; --k:#22c55e; --l:#f59e0b; --p:#ffffff;
     }
     *{box-sizing:border-box}
-    html,body{height:100%;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Noto Sans",sans-serif}
-    body{margin:0;display:flex;flex-direction:column}
-    header{padding:.8rem 1rem;border-bottom:1px solid #111;background:linear-gradient(180deg,#0d1116,#0b0d10)}
-    header h1{font-size:clamp(1rem,2.5vw,1.35rem);margin:0;font-weight:700}
-    header p{margin:.25rem 0 0;color:var(--muted);font-size:clamp(.8rem,2vw,.95rem)}
+    html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Noto Sans TC","PingFang TC",sans-serif}
+    .app{display:flex;flex-direction:column;min-height:100dvh}
+    header{position:fixed;inset:auto 0 0 0;height:auto;z-index:5;pointer-events:none}
+    .hud{position:absolute;top:8px;left:8px;right:8px;display:flex;gap:8px;flex-wrap:wrap;pointer-events:auto}
+    .chip{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(6px);padding:6px 10px;border-radius:999px;font-size:12px}
+    .chip strong{color:var(--accent)}
+    .canvas-wrap{order:0;position:relative;width:100%;aspect-ratio:1170/2532;max-height:78vh;border-bottom:1px solid rgba(255,255,255,.08)}
+    canvas{display:block;width:100%;height:100%}
+    .controls{order:1;padding:10px 12px;background:var(--panel);display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:center}
+    .controls h3{grid-column:1/-1;margin:4px 0 0 0;font-size:14px;color:var(--muted);font-weight:600}
+    .row{display:grid;grid-template-columns:100px 1fr 68px;gap:8px;align-items:center}
+    label{font-size:13px;color:var(--muted)}
+    input[type=range]{width:100%}
+    .val{font-variant-numeric:tabular-nums;text-align:right}
+    .btn{display:inline-flex;align-items:center;gap:6px;border:1px solid rgba(255,255,255,.15);background:#0f1630;color:var(--ink);padding:6px 10px;border-radius:10px;cursor:pointer}
+    .btn:active{transform:translateY(1px)}
 
-    .app{display:grid;grid-template-columns:1fr;gap:.75rem;padding:.75rem}
+    /* Bottom sheet (說明) */
+    .sheet{position:fixed;left:0;right:0;bottom:0;background:var(--panel);border-top-left-radius:16px;border-top-right-radius:16px;box-shadow:0 -10px 20px rgba(0,0,0,.35);transform:translateY(67%);transition:transform .25s ease;z-index:10}
+    .sheet.open{transform:translateY(0)}
+    .sheet .handle{width:42px;height:5px;border-radius:999px;background:rgba(255,255,255,.2);margin:8px auto}
+    .sheet .content{max-height:46vh;overflow:auto;padding:0 14px 16px}
+    .sheet h2{font-size:15px;margin:8px 0 4px;color:var(--accent)}
+    .sheet p,.sheet li{font-size:14px;color:#d6ddf5}
+    details{background:#0f1734;border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:6px 10px;margin:8px 0}
+    details>summary{cursor:pointer;color:#cbd5f7;font-weight:600}
+
+    /* Desktop tweak */
     @media(min-width:900px){
-      .app{grid-template-columns: minmax(320px,480px) 1fr}
+      .controls{grid-template-columns:1.1fr 1.1fr .8fr .8fr;align-items:end}
+      .controls h3{grid-column:auto}
+      .canvas-wrap{max-height:72vh}
+      .sheet .content{max-height:52vh}
     }
-
-    .panel{background:var(--panel);border:1px solid #111;border-radius:16px;padding:12px;box-shadow:0 0 0 1px rgba(255,255,255,.03) inset}
-    .panel h2{margin:.25rem 0 .5rem;font-size:1.05rem}
-    .panel h3{margin:.75rem 0 .25rem;font-size:.95rem;color:var(--muted)}
-    .panel .row{display:grid;grid-template-columns:1fr auto;gap:.5rem;align-items:center;margin:.35rem 0}
-    .panel label{font-size:.9rem;color:var(--muted)}
-    .panel input[type="range"]{width:100%}
-    .panel .pill{display:inline-block;padding:.15rem .5rem;border:1px solid #22303c;border-radius:999px;color:var(--muted);font-size:.75rem}
-
-    .legend{display:flex;flex-wrap:wrap;gap:.35rem}
-    .legend span{display:inline-flex;align-items:center;gap:.4rem;font-size:.8rem;color:var(--muted)}
-    .swatch{width:12px;height:12px;border-radius:3px;display:inline-block}
-
-    .canvasWrap{position:relative;background:#0a0e13;border:1px solid #111;border-radius:16px;overflow:hidden;min-height:40vh}
-    canvas{display:block;width:100%;height:100%;aspect-ratio:2532/1170; /* iPhone Pro Max portrait ratio */}
-
-    .explain{line-height:1.35;color:#cdd9e5;font-size:.92rem}
-    .explain p{margin:.4rem 0}
-    .explain .ok{color:var(--ok)}
-    .explain .bad{color:var(--bad)}
-    .explain .warn{color:var(--warn)}
-
-    .toolbar{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.5rem}
-    .toolbar button{background:#0f1420;border:1px solid #1f2a37;border-radius:10px;color:var(--ink);padding:.45rem .7rem;font-size:.9rem;cursor:pointer}
-    .toolbar button:hover{border-color:#2a3a4a}
-
-    .foot{padding:.25rem 1rem 1rem;color:var(--muted);font-size:.8rem}
   </style>
 </head>
 <body>
-  <header>
-    <h1>韋伯工業區位理論｜互動教學（行動裝置友善）</h1>
-    <p>拖曳地圖上的點、調整滑桿，立刻看到「運輸最小點 P」如何改變。新增了清楚的圖例與即時說明。</p>
-  </header>
-
-  <div class="app">
-    <!-- Controls & explanations -->
-    <section class="panel" id="controls">
-      <h2>控制面板</h2>
-      <div class="legend" style="margin-bottom:.5rem">
-        <span><i class="swatch" style="background:var(--mat)"></i>材料倉庫 M1/M2</span>
-        <span><i class="swatch" style="background:var(--cons)"></i>消費地 K</span>
-        <span><i class="swatch" style="background:var(--labor)"></i>勞動地 L（勞動場所）</span>
-        <span><i class="swatch" style="background:var(--p)"></i>運輸最小點 P / 實際區位</span>
-        <span><i class="swatch" style="background:var(--iso)"></i>等費線（ΔK 相同）</span>
-      </div>
-
-      <h3>材料權重（每噸產品需運多少距離）</h3>
-      <div class="row"><label>權重 a1（M1） <span class="pill" id="a1Lab"></span></label><input id="a1" type="range" min="0" max="12" step="0.5" value="4"></div>
-      <div class="row"><label>權重 a2（M2） <span class="pill" id="a2Lab"></span></label><input id="a2" type="range" min="0" max="12" step="0.5" value="6"></div>
-      <div class="row"><label>權重 a3（成品到 K） <span class="pill" id="a3Lab"></span></label><input id="a3" type="range" min="0" max="12" step="0.5" value="3"></div>
-
-      <h3>費率與勞動</h3>
-      <div class="row"><label>每噸公里費率 𝒜ₛ <span class="pill" id="rateLab"></span></label><input id="rate" type="range" min="0.01" max="0.2" step="0.005" value="0.05"></div>
-      <div class="row"><label>勞動節約（每噸）S <span class="pill" id="saveLab"></span></label><input id="save" type="range" min="0" max="120" step="2" value="20"></div>
-
-      <h3>顯示</h3>
-      <div class="row"><label>顯示熱度雲（ΔK）</label><input id="heat" type="checkbox" checked></div>
-      <div class="row"><label>顯示等費線</label><input id="isoOn" type="checkbox" checked></div>
-      <div class="row"><label>顯示「勞動臨界圈」</label><input id="laborOn" type="checkbox" checked></div>
-
-      <div class="toolbar">
-        <button id="reset">重置</button>
-        <button id="selftest">自檢</button>
-        <button id="png">匯出 PNG</button>
-      </div>
-
-      <div class="explain" id="explainBox" style="margin-top:.5rem"></div>
-    </section>
-
-    <!-- Canvas -->
-    <section class="panel canvasWrap">
-      <canvas id="c" width="1266" height="585"></canvas>
-    </section>
+<div class="app">
+  <div class="canvas-wrap">
+    <canvas id="cv" aria-label="Weber 模型互動畫布"></canvas>
+    <div class="hud" id="hud"></div>
   </div>
 
-  <div class="foot">提示：黑色半透明的「雲」＝比最小運輸成本高出的額外成本 ΔK（越深越貴）。黃色虛線圈＝在此圈內，若把工廠搬去 L，勞動節約 S ≥ 額外運輸成本 ⇒ 生產會轉往 L。</div>
+  <div class="controls" id="controls">
+    <h3>材料權重（每單位產品的噸數）：</h3>
+    <div class="row"><label> M1（紅）</label><input id="w1" type="range" min="0" max="5" step="0.1" value="1"><div class="val" id="vw1">1.0</div></div>
+    <div class="row"><label> M2（藍）</label><input id="w2" type="range" min="0" max="5" step="0.1" value="1"><div class="val" id="vw2">1.0</div></div>
+    <div class="row"><label> K（綠）</label><input id="w3" type="range" min="0" max="5" step="0.1" value="1"><div class="val" id="vw3">1.0</div></div>
 
-  <script>
-  document.addEventListener('DOMContentLoaded', () => {
-    const el = id => document.getElementById(id);
-    const canvas = el('c');
-    const ctx = canvas.getContext('2d');
+    <h3>費率與勞動：</h3>
+    <div class="row"><label> 費率 As（噸公里成本）</label><input id="as" type="range" min="0" max="0.05" step="0.001" value="0.01"><div class="val" id="vas">0.010</div></div>
+    <div class="row"><label> 勞動節約 S（每單位）</label><input id="s" type="range" min="0" max="300" step="1" value="30"><div class="val" id="vs">30</div></div>
 
-    // --- State -------------------------------------------------------------
-    const state = {
-      a1: 4, a2: 6, a3: 3, // weights
-      rate: 0.05, // As
-      save: 20,   // labor saving per ton
-      showHeat: true,
-      showIso: true,
-      showLabor: true,
-      // points in canvas coords
-      M1: {x: canvas.width*0.22, y: canvas.height*0.75},
-      M2: {x: canvas.width*0.78, y: canvas.height*0.72},
-      K:  {x: canvas.width*0.55, y: canvas.height*0.20},
-      L:  {x: canvas.width*0.28, y: canvas.height*0.28},
-      dragging: null,
-      Ptransport: {x:0,y:0},
-      Peffective: {x:0,y:0},
-      lastInfo: ''
-    };
-
-    // --- UI bindings ------------------------------------------------------
-    const updPill = (id, txt) => el(id).textContent = txt;
-    const fmt = n => (Math.abs(n) < 100 ? n.toFixed(2) : Math.round(n));
-
-    function syncUI(){
-      updPill('a1Lab', `a1 = ${fmt(state.a1)}`);
-      updPill('a2Lab', `a2 = ${fmt(state.a2)}`);
-      updPill('a3Lab', `a3 = ${fmt(state.a3)}`);
-      updPill('rateLab', `${fmt(state.rate)} /噸·公里`);
-      updPill('saveLab', `${fmt(state.save)} /噸`);
-    }
-
-    const sliders = ['a1','a2','a3','rate','save'];
-    sliders.forEach(id=>{
-      const s = el(id);
-      s.addEventListener('input', ()=>{
-        const v = parseFloat(s.value);
-        state[id] = v; syncUI(); draw();
-      });
-    });
-    el('heat').addEventListener('change', e=>{state.showHeat = e.target.checked; draw()});
-    el('isoOn').addEventListener('change', e=>{state.showIso = e.target.checked; draw()});
-    el('laborOn').addEventListener('change', e=>{state.showLabor = e.target.checked; draw()});
-
-    el('reset').addEventListener('click', ()=>{
-      state.a1=4; state.a2=6; state.a3=3; state.rate=0.05; state.save=20;
-      state.M1={x: canvas.width*0.22, y: canvas.height*0.75};
-      state.M2={x: canvas.width*0.78, y: canvas.height*0.72};
-      state.K= {x: canvas.width*0.55, y: canvas.height*0.20};
-      state.L= {x: canvas.width*0.28, y: canvas.height*0.28};
-      el('heat').checked=true; el('isoOn').checked=true; el('laborOn').checked=true;
-      syncUI(); draw();
-    });
-
-    el('png').addEventListener('click', ()=>{
-      const a = document.createElement('a');
-      a.download = 'weber_tutorial.png';
-      a.href = canvas.toDataURL('image/png');
-      a.click();
-    });
-
-    el('selftest').addEventListener('click', ()=>{
-      const msgs = [];
-      // 1) 對稱、等權重 ⇒ P 在三角形幾何中心附近（質心近似）
-      const backup = JSON.parse(JSON.stringify(state));
-      state.M1={x:200,y:500}; state.M2={x:1060,y:500}; state.K={x:630,y:120};
-      state.a1=state.a2=state.a3=1; solveP();
-      const centroid={x:(state.M1.x+state.M2.x+state.K.x)/3,y:(state.M1.y+state.M2.y+state.K.y)/3};
-      const d1 = dist(state.Ptransport, centroid);
-      msgs.push(d1<5? '✓ 對稱情形：P 接近質心':'✗ 對稱情形未通過');
-      // 2) a1 極大 ⇒ P 貼近 M1
-      state.a1=100; state.a2=1; state.a3=1; solveP();
-      const d2 = dist(state.Ptransport, state.M1);
-      msgs.push(d2<3? '✓ 重權重：P 靠近 M1':'✗ 重權重未通過');
-      // 3) 勞動節約大 ⇒ 實際區位轉向 L
-      state.a1=state.a2=state.a3=5; state.rate=0.05; state.save=1e6; state.L={x:500,y:300};
-      solveP(); applyLabor();
-      msgs.push(eqPt(state.Peffective,state.L,1)? '✓ 高勞動節約：轉向 L':'✗ 勞動節約未轉向');
-      // 恢復
-      Object.assign(state, backup);
-      syncUI(); draw();
-      alert(msgs.join('\n'));
-    });
-
-    // --- Geometry helpers -------------------------------------------------
-    const dist = (p,q)=> Math.hypot(p.x-q.x,p.y-q.y);
-    const lerp = (a,b,t)=> a+(b-a)*t;
-    function eqPt(p,q,eps){return dist(p,q)<= (eps??1.5)}
-
-    // --- Cost model --------------------------------------------------------
-    function K(p){
-      const {a1,a2,a3,rate,M1,M2,K} = state;
-      const sum = a1*dist(p,M1) + a2*dist(p,M2) + a3*dist(p,K);
-      return sum * rate; // 金額/噸
-    }
-
-    // Weiszfeld（帶權重）
-    function solveP(){
-      const {M1,M2,K} = state;
-      let x = (M1.x+M2.x+K.x)/3, y=(M1.y+M2.y+K.y)/3;
-      for(let iter=0; iter<200; iter++){
-        const pts=[M1,M2,K]; const ws=[state.a1,state.a2,state.a3];
-        let numX=0,numY=0,den=0; let snap=null;
-        for(let i=0;i<3;i++){
-          const d = Math.hypot(x-pts[i].x,y-pts[i].y);
-          if(d<1e-6){ snap=pts[i]; break; }
-          const w = ws[i]/d; numX += w*pts[i].x; numY += w*pts[i].y; den += w;
-        }
-        if(snap){ x=snap.x; y=snap.y; break; }
-        const nx = numX/den, ny=numY/den;
-        if(Math.hypot(nx-x,ny-y)<0.1){ x=nx; y=ny; break; }
-        x=nx; y=ny;
-      }
-      state.Ptransport = {x,y};
-    }
-
-    function applyLabor(){
-      const {save,L} = state;
-      const dK = K(L) - K(state.Ptransport); // 偏差成本（每噸）
-      if(save >= dK){
-        state.Peffective = {...L};
-        state.lastInfo = `勞動節約 S = ${fmt(save)} ≥ 偏差成本 ΔK(L) = ${fmt(dK)} → 生產轉向 L。`;
-      }else{
-        state.Peffective = {...state.Ptransport};
-        state.lastInfo = `勞動節約 S = ${fmt(save)} < 偏差成本 ΔK(L) = ${fmt(dK)} → 仍留在運輸最小點 P。`;
-      }
-      return {dK};
-    }
-
-    // 近似「臨界等費線」：解 ΔK(r,θ) = S，沿各角度二分搜尋半徑
-    function criticalIsodapane(points=96){
-      const pts=[]; const S = state.save; const P0 = state.Ptransport;
-      const K0 = K(P0);
-      for(let i=0;i<points;i++){
-        const th = i/points*2*Math.PI;
-        let lo=0, hi=Math.hypot(canvas.width,canvas.height);
-        for(let it=0; it<16; it++){
-          const mid=(lo+hi)/2;
-          const p = {x:P0.x+Math.cos(th)*mid, y:P0.y+Math.sin(th)*mid};
-          const dK = K(p)-K0;
-          if(dK<S) lo=mid; else hi=mid;
-        }
-        const r=hi; pts.push({x:P0.x+Math.cos(th)*r, y:P0.y+Math.sin(th)*r});
-      }
-      return pts;
-    }
-
-    // --- Rendering --------------------------------------------------------
-    function draw(){
-      solveP();
-      const {dK} = applyLabor();
-      ctx.clearRect(0,0,canvas.width,canvas.height);
-
-      // 背景格
-      ctx.save();
-      ctx.strokeStyle = '#13202d'; ctx.lineWidth=1;
-      for(let x=0;x<canvas.width;x+=48){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,canvas.height);ctx.stroke()}
-      for(let y=0;y<canvas.height;y+=48){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(canvas.width,y);ctx.stroke()}
-      ctx.restore();
-
-      // 熱度雲：ΔK（相對 Ptransport）
-      if(state.showHeat){
-        const K0 = K(state.Ptransport);
-        const cell=6; // 行動裝置也順
-        const img = ctx.createImageData(canvas.width,canvas.height);
-        for(let y=0;y<canvas.height;y+=cell){
-          for(let x=0;x<canvas.width;x+=cell){
-            const dKloc = K({x,y}) - K0; // 每噸額外成本
-            // map 0..max to alpha; clamp at 120/噸（與 save 上限對齊）
-            const alpha = Math.max(0, Math.min(1, dKloc/120));
-            const shade = 0; // 黑雲
-            for(let yy=0; yy<cell; yy++){
-              for(let xx=0; xx<cell; xx++){
-                const idx = 4*((y+yy)*canvas.width + (x+xx));
-                img.data[idx+0]=shade;
-                img.data[idx+1]=shade;
-                img.data[idx+2]=shade;
-                img.data[idx+3]=alpha*180; // 透明度
-              }
-            }
-          }
-        }
-        ctx.putImageData(img,0,0);
-      }
-
-      // 等費線：以 ΔK = 10, 20, ..., 100 畫近似等高線（採樣）
-      if(state.showIso){
-        const K0 = K(state.Ptransport);
-        const steps = [10,20,30,40,60,80,100];
-        ctx.save(); ctx.strokeStyle='rgba(59,130,246,.8)'; ctx.lineWidth=1.25;
-        for(const S of steps){
-          const poly = sampleIsodapan(S,K0,72);
-          strokePoly(poly);
-        }
-        ctx.restore();
-      }
-
-      // 勞動臨界圈（S）
-      if(state.showLabor){
-        const circ = criticalIsodapane(96);
-        ctx.save(); ctx.setLineDash([6,6]); ctx.strokeStyle='rgba(234,179,8,.9)'; ctx.lineWidth=2;
-        strokePoly(circ,true);
-        ctx.restore();
-      }
-
-      // 連線三角形
-      line(state.M1,state.M2,'#22394d'); line(state.M2,state.K,'#22394d'); line(state.K,state.M1,'#22394d');
-
-      // 點位與標籤
-      dot(state.M1, 'M1', getCSS('--mat'));
-      dot(state.M2, 'M2', getCSS('--mat'));
-      dot(state.K,  'K',  getCSS('--cons'));
-      dot(state.L,  'L',  getCSS('--labor'));
-
-      // P（運輸最小）
-      dot(state.Ptransport, 'P₀', getCSS('--p'));
-      // 實際區位（考慮勞動）
-      ctx.save();
-      ctx.beginPath(); ctx.arc(state.Peffective.x, state.Peffective.y, 7, 0, Math.PI*2);
-      ctx.fillStyle = 'rgba(244,114,182,.15)'; ctx.fill();
-      ctx.strokeStyle = getCSS('--p'); ctx.lineWidth=2; ctx.stroke();
-      ctx.restore(); label(state.Peffective, '實際區位', getCSS('--p'));
-
-      // 說明盒
-      const G = state.a1+state.a2+state.a3;
-      const txt = [
-        `目前：a₁=${fmt(state.a1)}, a₂=${fmt(state.a2)}, a₃=${fmt(state.a3)}, 𝒜ₛ=${fmt(state.rate)}, S=${fmt(state.save)}`,
-        `黑色雲＝相對 P₀ 的額外運輸成本 ΔK。越黑＝每噸越貴（上限 120）。`,
-        state.lastInfo,
-        `直覺：增大某一材料權重 ⇒ 等費線向該材料傾斜，P₀會向該材料移動；提高 S ⇒ 黃色圈擴大，較容易滿足『轉往 L』條件。`,
-      ].join('<br>');
-      el('explainBox').innerHTML = txt;
-    }
-
-    function sampleIsodapan(S, K0, rays){
-      const P0 = state.Ptransport; const pts=[];
-      for(let i=0;i<rays;i++){
-        const th = i/rays*2*Math.PI;
-        let lo=0, hi=Math.hypot(canvas.width,canvas.height);
-        for(let it=0; it<16; it++){
-          const mid=(lo+hi)/2;
-          const p={x:P0.x+Math.cos(th)*mid, y:P0.y+Math.sin(th)*mid};
-          const dK = K(p)-K0;
-          if(dK<S) lo=mid; else hi=mid;
-        }
-        pts.push({x:P0.x+Math.cos(th)*hi, y:P0.y+Math.sin(th)*hi});
-      }
-      return pts;
-    }
-
-    function strokePoly(pts, close=true){
-      if(!pts || pts.length<2) return;
-      ctx.beginPath(); ctx.moveTo(pts[0].x, pts[0].y);
-      for(let i=1;i<pts.length;i++) ctx.lineTo(pts[i].x, pts[i].y);
-      if(close) ctx.closePath(); ctx.stroke();
-    }
-
-    function getCSS(varName){return getComputedStyle(document.documentElement).getPropertyValue(varName).trim();}
-    function line(p,q,color){ctx.save();ctx.strokeStyle=color;ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(q.x,q.y);ctx.stroke();ctx.restore();}
-    function label(p, text, color){ctx.save();ctx.fillStyle=color;ctx.font='12px ui-sans-serif,system-ui';ctx.fillText(text, p.x+8, p.y-8);ctx.restore();}
-    function dot(p, text, color){ctx.save();ctx.fillStyle=color;ctx.beginPath();ctx.arc(p.x,p.y,5,0,Math.PI*2);ctx.fill();ctx.restore(); label(p,text,color)}
-
-    // --- Dragging ---------------------------------------------------------
-    const hitRadius = 14;
-    function pick(mx,my){
-      const keys=['M1','M2','K','L'];
-      for(const k of keys){ if(dist({x:mx,y:my}, state[k])<hitRadius) return k; }
-      return null;
-    }
-    canvas.addEventListener('pointerdown', e=>{
-      const rect=canvas.getBoundingClientRect();
-      const x=(e.clientX-rect.left)*canvas.width/rect.width;
-      const y=(e.clientY-rect.top)*canvas.height/rect.height;
-      state.dragging = pick(x,y);
-    });
-    canvas.addEventListener('pointermove', e=>{
-      if(!state.dragging) return;
-      const rect=canvas.getBoundingClientRect();
-      const x=(e.clientX-rect.left)*canvas.width/rect.width;
-      const y=(e.clientY-rect.top)*canvas.height/rect.height;
-      state[state.dragging]={x,y}; draw();
-    });
-    canvas.addEventListener('pointerup', ()=> state.dragging=null);
-    canvas.addEventListener('pointerleave', ()=> state.dragging=null);
-
-    // --- Init -------------------------------------------------------------
-    syncUI(); draw();
-  });
-  </script>
-</body>
-</html><!doctype html>
-<html lang="zh-Hant">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-  <title>韋伯工業區位理論｜互動教學</title>
-  <style>
-    :root{
-      --bg:#0b0d10;--panel:#12161b;--ink:#e7edf3;--muted:#9fb2c7;--accent:#4cc9f0;--ok:#67e8f9;--warn:#fbbf24;--bad:#fb7185;
-      --grid:#1f2937;--iso:#3b82f6;--labor:#eab308;--mat:#a78bfa;--cons:#34d399;--p:#f472b6;
-    }
-    *{box-sizing:border-box}
-    html,body{height:100%;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Noto Sans",sans-serif}
-    body{margin:0;display:flex;flex-direction:column}
-    header{padding:.8rem 1rem;border-bottom:1px solid #111;background:linear-gradient(180deg,#0d1116,#0b0d10)}
-    header h1{font-size:clamp(1rem,2.5vw,1.35rem);margin:0;font-weight:700}
-    header p{margin:.25rem 0 0;color:var(--muted);font-size:clamp(.8rem,2vw,.95rem)}
-
-    .app{display:grid;grid-template-columns:1fr;gap:.75rem;padding:.75rem}
-    @media(min-width:900px){
-      .app{grid-template-columns: minmax(320px,480px) 1fr}
-    }
-
-    .panel{background:var(--panel);border:1px solid #111;border-radius:16px;padding:12px;box-shadow:0 0 0 1px rgba(255,255,255,.03) inset}
-    .panel h2{margin:.25rem 0 .5rem;font-size:1.05rem}
-    .panel h3{margin:.75rem 0 .25rem;font-size:.95rem;color:var(--muted)}
-    .panel .row{display:grid;grid-template-columns:1fr auto;gap:.5rem;align-items:center;margin:.35rem 0}
-    .panel label{font-size:.9rem;color:var(--muted)}
-    .panel input[type="range"]{width:100%}
-    .panel .pill{display:inline-block;padding:.15rem .5rem;border:1px solid #22303c;border-radius:999px;color:var(--muted);font-size:.75rem}
-
-    .legend{display:flex;flex-wrap:wrap;gap:.35rem}
-    .legend span{display:inline-flex;align-items:center;gap:.4rem;font-size:.8rem;color:var(--muted)}
-    .swatch{width:12px;height:12px;border-radius:3px;display:inline-block}
-
-    .canvasWrap{position:relative;background:#0a0e13;border:1px solid #111;border-radius:16px;overflow:hidden;min-height:40vh}
-    canvas{display:block;width:100%;height:100%;aspect-ratio:2532/1170; /* iPhone Pro Max portrait ratio */}
-
-    .explain{line-height:1.35;color:#cdd9e5;font-size:.92rem}
-    .explain p{margin:.4rem 0}
-    .explain .ok{color:var(--ok)}
-    .explain .bad{color:var(--bad)}
-    .explain .warn{color:var(--warn)}
-
-    .toolbar{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.5rem}
-    .toolbar button{background:#0f1420;border:1px solid #1f2a37;border-radius:10px;color:var(--ink);padding:.45rem .7rem;font-size:.9rem;cursor:pointer}
-    .toolbar button:hover{border-color:#2a3a4a}
-
-    .foot{padding:.25rem 1rem 1rem;color:var(--muted);font-size:.8rem}
-  </style>
-</head>
-<body>
-  <header>
-    <h1>韋伯工業區位理論｜互動教學（行動裝置友善）</h1>
-    <p>拖曳地圖上的點、調整滑桿，立刻看到「運輸最小點 P」如何改變。新增了清楚的圖例與即時說明。</p>
-  </header>
-
-  <div class="app">
-    <!-- Controls & explanations -->
-    <section class="panel" id="controls">
-      <h2>控制面板</h2>
-      <div class="legend" style="margin-bottom:.5rem">
-        <span><i class="swatch" style="background:var(--mat)"></i>材料倉庫 M1/M2</span>
-        <span><i class="swatch" style="background:var(--cons)"></i>消費地 K</span>
-        <span><i class="swatch" style="background:var(--labor)"></i>勞動地 L（勞動場所）</span>
-        <span><i class="swatch" style="background:var(--p)"></i>運輸最小點 P / 實際區位</span>
-        <span><i class="swatch" style="background:var(--iso)"></i>等費線（ΔK 相同）</span>
-      </div>
-
-      <h3>材料權重（每噸產品需運多少距離）</h3>
-      <div class="row"><label>權重 a1（M1） <span class="pill" id="a1Lab"></span></label><input id="a1" type="range" min="0" max="12" step="0.5" value="4"></div>
-      <div class="row"><label>權重 a2（M2） <span class="pill" id="a2Lab"></span></label><input id="a2" type="range" min="0" max="12" step="0.5" value="6"></div>
-      <div class="row"><label>權重 a3（成品到 K） <span class="pill" id="a3Lab"></span></label><input id="a3" type="range" min="0" max="12" step="0.5" value="3"></div>
-
-      <h3>費率與勞動</h3>
-      <div class="row"><label>每噸公里費率 𝒜ₛ <span class="pill" id="rateLab"></span></label><input id="rate" type="range" min="0.01" max="0.2" step="0.005" value="0.05"></div>
-      <div class="row"><label>勞動節約（每噸）S <span class="pill" id="saveLab"></span></label><input id="save" type="range" min="0" max="120" step="2" value="20"></div>
-
-      <h3>顯示</h3>
-      <div class="row"><label>顯示熱度雲（ΔK）</label><input id="heat" type="checkbox" checked></div>
-      <div class="row"><label>顯示等費線</label><input id="isoOn" type="checkbox" checked></div>
-      <div class="row"><label>顯示「勞動臨界圈」</label><input id="laborOn" type="checkbox" checked></div>
-
-      <div class="toolbar">
-        <button id="reset">重置</button>
-        <button id="selftest">自檢</button>
-        <button id="png">匯出 PNG</button>
-      </div>
-
-      <div class="explain" id="explainBox" style="margin-top:.5rem"></div>
-    </section>
-
-    <!-- Canvas -->
-    <section class="panel canvasWrap">
-      <canvas id="c" width="1266" height="585"></canvas>
-    </section>
+    <div class="row" style="grid-column:1/-1;gap:10px">
+      <button class="btn" id="btn-iso">顯示/隱藏 臨界等費線</button>
+      <button class="btn" id="btn-heat">顯示/隱藏 ΔK 熱度</button>
+      <button class="btn" id="btn-test">自檢</button>
+      <button class="btn" id="btn-help">說明</button>
+    </div>
   </div>
+</div>
 
-  <div class="foot">提示：黑色半透明的「雲」＝比最小運輸成本高出的額外成本 ΔK（越深越貴）。黃色虛線圈＝在此圈內，若把工廠搬去 L，勞動節約 S ≥ 額外運輸成本 ⇒ 生產會轉往 L。</div>
+<!-- Bottom sheet：手機優先說明，不遮住畫布 -->
+<section class="sheet" id="sheet">
+  <div class="handle"></div>
+  <div class="content">
+    <h2>怎麼讀這個圖？</h2>
+    <p>紅 <b>M1</b>、藍 <b>M2</b>、綠 <b>K</b> 是三個材料倉庫；黃 <b>L</b> 是低工資（或高效率）的勞動地；白 <b>P₀</b> 是只看運輸成本的最小點（加權幾何中位數）。紫 <b>P</b> 是實際生產地：若 <code>ΔK(L) ≤ S</code>，工廠會搬到 <b>L</b>，否則留在 <b>P₀</b>。</p>
+    <p>黑色雲狀為 <code>ΔK(x)=K(x)-K(P₀)</code> 的熱度，越黑＝偏離成本越高。黃色虛線是 <b>臨界等費線</b>：<code>ΔK(x)=S</code> 的等高線。把 <b>L</b> 拖進線內 ⇒ 會搬；拖到線外 ⇒ 不搬。</p>
 
-  <script>
-  document.addEventListener('DOMContentLoaded', () => {
-    const el = id => document.getElementById(id);
-    const canvas = el('c');
-    const ctx = canvas.getContext('2d');
+    <details open>
+      <summary>費率 As 與勞動節約 S 怎麼影響？</summary>
+      <ul>
+        <li><b>As↑</b>：每公里更貴 → 同距離的 <code>ΔK</code> 變大 → 臨界線縮小 → 不易因勞動而搬。</li>
+        <li><b>As↓</b>：運輸便宜 → 臨界線擴大 → 較易搬去 L。</li>
+        <li><b>S↑</b>：去 L 的每單位勞動節約變大 → 臨界線擴大 → 容易搬。</li>
+        <li><b>S↓</b>：節約小 → 臨界線縮小 → 多半留在 P₀。</li>
+      </ul>
+      <p>數學上：<code>K(P)=As·∑ wᵢ·d(P,Aᵢ)</code>；<code>ΔK(L)=K(L)-K(P₀)</code>。若 <code>ΔK(L) ≤ S</code> ⇒ 勞動地取代最小點。</p>
+    </details>
 
-    // --- State -------------------------------------------------------------
-    const state = {
-      a1: 4, a2: 6, a3: 3, // weights
-      rate: 0.05, // As
-      save: 20,   // labor saving per ton
-      showHeat: true,
-      showIso: true,
-      showLabor: true,
-      // points in canvas coords
-      M1: {x: canvas.width*0.22, y: canvas.height*0.75},
-      M2: {x: canvas.width*0.78, y: canvas.height*0.72},
-      K:  {x: canvas.width*0.55, y: canvas.height*0.20},
-      L:  {x: canvas.width*0.28, y: canvas.height*0.28},
-      dragging: null,
-      Ptransport: {x:0,y:0},
-      Peffective: {x:0,y:0},
-      lastInfo: ''
-    };
+    <details>
+      <summary>更多韋伯重點（濃縮版）</summary>
+      <ul>
+        <li><b>遍在 vs. 區位材料</b>：遍在（空氣、水、磚土…）→ 多在消費地；區位材料（礦、煤…）→ 牽引至產地。</li>
+        <li><b>材料指數 / 區位權重 G</b>：每單位產品運輸的總重量。<b>G↑</b> ⇒ 偏離更貴、等費線更緊。</li>
+        <li><b>等費線（Isodapanen）</b>：離 P₀ 等額外運費的等高線；臨界等費線與 <b>S</b> 一一對應。</li>
+        <li><b>費率制度</b>：有效費率改變等費線密度（體積貨、階梯運價都可視為權重或距離的加減）。</li>
+        <li><b>水運/陸運協同</b>：低費率通道可改寫最佳倉庫與 P₀ 的位置（之後可加成模組）。</li>
+        <li><b>多階段生產</b>：常出現 P₁、P₂… 各自最小點，除非條件特殊，很少完全重合。</li>
+        <li><b>集聚</b>：若集聚節約 <code>f(M)</code> 超過偏離成本，會在臨界段聚合；集聚半徑 <code>R ∝ f(M)/(As·G)</code>。</li>
+      </ul>
+    </details>
 
-    // --- UI bindings ------------------------------------------------------
-    const updPill = (id, txt) => el(id).textContent = txt;
-    const fmt = n => (Math.abs(n) < 100 ? n.toFixed(2) : Math.round(n));
+    <details>
+      <summary>快速操作</summary>
+      <ul>
+        <li>拖動點（M1/M2/K/L）或拉動滑桿（wᵢ、As、S）。</li>
+        <li>開關 ΔK 熱度 / 臨界等費線。</li>
+        <li>點「自檢」跑幾個可視化測試。</li>
+      </ul>
+    </details>
+  </div>
+</section>
 
-    function syncUI(){
-      updPill('a1Lab', `a1 = ${fmt(state.a1)}`);
-      updPill('a2Lab', `a2 = ${fmt(state.a2)}`);
-      updPill('a3Lab', `a3 = ${fmt(state.a3)}`);
-      updPill('rateLab', `${fmt(state.rate)} /噸·公里`);
-      updPill('saveLab', `${fmt(state.save)} /噸`);
-    }
+<script>
+(function(){
+  'use strict';
+  // ====== Geometry helpers ======
+  const hypot = Math.hypot;
+  const dist = (a,b)=>hypot(a.x-b.x, a.y-b.y);
+  const clamp=(v,min,max)=>v<min?min:(v>max?max:v);
 
-    const sliders = ['a1','a2','a3','rate','save'];
-    sliders.forEach(id=>{
-      const s = el(id);
-      s.addEventListener('input', ()=>{
-        const v = parseFloat(s.value);
-        state[id] = v; syncUI(); draw();
-      });
-    });
-    el('heat').addEventListener('change', e=>{state.showHeat = e.target.checked; draw()});
-    el('isoOn').addEventListener('change', e=>{state.showIso = e.target.checked; draw()});
-    el('laborOn').addEventListener('change', e=>{state.showLabor = e.target.checked; draw()});
+  // ====== DOM ======
+  const cv = document.getElementById('cv');
+  const hud = document.getElementById('hud');
+  const sheet = document.getElementById('sheet');
+  const btnIso = document.getElementById('btn-iso');
+  const btnHeat = document.getElementById('btn-heat');
+  const btnTest = document.getElementById('btn-test');
+  const btnHelp = document.getElementById('btn-help');
 
-    el('reset').addEventListener('click', ()=>{
-      state.a1=4; state.a2=6; state.a3=3; state.rate=0.05; state.save=20;
-      state.M1={x: canvas.width*0.22, y: canvas.height*0.75};
-      state.M2={x: canvas.width*0.78, y: canvas.height*0.72};
-      state.K= {x: canvas.width*0.55, y: canvas.height*0.20};
-      state.L= {x: canvas.width*0.28, y: canvas.height*0.28};
-      el('heat').checked=true; el('isoOn').checked=true; el('laborOn').checked=true;
-      syncUI(); draw();
-    });
+  const w1El = document.getElementById('w1');
+  const w2El = document.getElementById('w2');
+  const w3El = document.getElementById('w3');
+  const asEl = document.getElementById('as');
+  const sEl  = document.getElementById('s');
+  const vw1 = document.getElementById('vw1');
+  const vw2 = document.getElementById('vw2');
+  const vw3 = document.getElementById('vw3');
+  const vas = document.getElementById('vas');
+  const vs  = document.getElementById('vs');
 
-    el('png').addEventListener('click', ()=>{
-      const a = document.createElement('a');
-      a.download = 'weber_tutorial.png';
-      a.href = canvas.toDataURL('image/png');
-      a.click();
-    });
+  // ====== Canvas logical size tuned for 1170x2532 ratio ======
+  let DPR = Math.max(1, Math.min(3, window.devicePixelRatio||1));
+  let W = 1170, H = 2532; // logical
+  function resize(){
+    const rect = cv.parentElement.getBoundingClientRect();
+    const ratio = 1170/2532;
+    let w = rect.width; let h = rect.height;
+    // keep container aspect by CSS; but fix backing store
+    W = Math.round(w * DPR);
+    H = Math.round(h * DPR);
+    cv.width = W; cv.height = H; cv.style.width = w+'px'; cv.style.height = h+'px';
+    DPR = Math.max(1, Math.min(3, window.devicePixelRatio||1));
+    draw();
+  }
+  window.addEventListener('resize', resize);
 
-    el('selftest').addEventListener('click', ()=>{
-      const msgs = [];
-      // 1) 對稱、等權重 ⇒ P 在三角形幾何中心附近（質心近似）
-      const backup = JSON.parse(JSON.stringify(state));
-      state.M1={x:200,y:500}; state.M2={x:1060,y:500}; state.K={x:630,y:120};
-      state.a1=state.a2=state.a3=1; solveP();
-      const centroid={x:(state.M1.x+state.M2.x+state.K.x)/3,y:(state.M1.y+state.M2.y+state.K.y)/3};
-      const d1 = dist(state.Ptransport, centroid);
-      msgs.push(d1<5? '✓ 對稱情形：P 接近質心':'✗ 對稱情形未通過');
-      // 2) a1 極大 ⇒ P 貼近 M1
-      state.a1=100; state.a2=1; state.a3=1; solveP();
-      const d2 = dist(state.Ptransport, state.M1);
-      msgs.push(d2<3? '✓ 重權重：P 靠近 M1':'✗ 重權重未通過');
-      // 3) 勞動節約大 ⇒ 實際區位轉向 L
-      state.a1=state.a2=state.a3=5; state.rate=0.05; state.save=1e6; state.L={x:500,y:300};
-      solveP(); applyLabor();
-      msgs.push(eqPt(state.Peffective,state.L,1)? '✓ 高勞動節約：轉向 L':'✗ 勞動節約未轉向');
-      // 恢復
-      Object.assign(state, backup);
-      syncUI(); draw();
-      alert(msgs.join('\n'));
-    });
+  // ====== State ======
+  const state = {
+    M1:{x:0.25, y:0.28}, M2:{x:0.75, y:0.30}, K:{x:0.50, y:0.80}, L:{x:0.20, y:0.70},
+    w1:1, w2:1, w3:1, As:0.01, S:30,
+    showIso:true, showHeat:true,
+    dragging:null
+  };
 
-    // --- Geometry helpers -------------------------------------------------
-    const dist = (p,q)=> Math.hypot(p.x-q.x,p.y-q.y);
-    const lerp = (a,b,t)=> a+(b-a)*t;
-    function eqPt(p,q,eps){return dist(p,q)<= (eps??1.5)}
-
-    // --- Cost model --------------------------------------------------------
-    function K(p){
-      const {a1,a2,a3,rate,M1,M2,K} = state;
-      const sum = a1*dist(p,M1) + a2*dist(p,M2) + a3*dist(p,K);
-      return sum * rate; // 金額/噸
-    }
-
-    // Weiszfeld（帶權重）
-    function solveP(){
-      const {M1,M2,K} = state;
-      let x = (M1.x+M2.x+K.x)/3, y=(M1.y+M2.y+K.y)/3;
-      for(let iter=0; iter<200; iter++){
-        const pts=[M1,M2,K]; const ws=[state.a1,state.a2,state.a3];
-        let numX=0,numY=0,den=0; let snap=null;
-        for(let i=0;i<3;i++){
-          const d = Math.hypot(x-pts[i].x,y-pts[i].y);
-          if(d<1e-6){ snap=pts[i]; break; }
-          const w = ws[i]/d; numX += w*pts[i].x; numY += w*pts[i].y; den += w;
-        }
-        if(snap){ x=snap.x; y=snap.y; break; }
-        const nx = numX/den, ny=numY/den;
-        if(Math.hypot(nx-x,ny-y)<0.1){ x=nx; y=ny; break; }
-        x=nx; y=ny;
+  // ====== Cost functions ======
+  function px(p){ return {x:p.x*W, y:p.y*H}; }
+  function ux(p){ return {x: p.x/W, y: p.y/H}; }
+  function Kcost(P){ // transport cost
+    const A1 = px(state.M1), A2 = px(state.M2), A3 = px(state.K);
+    return state.As*( state.w1*dist(P,A1) + state.w2*dist(P,A2) + state.w3*dist(P,A3) );
+  }
+  function P0(){ // weighted geometric median via Weiszfeld
+    const A = [px(state.M1), px(state.M2), px(state.K)];
+    const Ww = [state.w1, state.w2, state.w3];
+    // start at weighted centroid
+    let x=0,y=0, s=0; for(let i=0;i<3;i++){ x+=A[i].x*Ww[i]; y+=A[i].y*Ww[i]; s+=Ww[i]; }
+    x/=s; y/=s;
+    for(let it=0; it<80; it++){
+      let numx=0,numy=0,den=0; let stuck=false;
+      for(let i=0;i<3;i++){
+        const dx=x-A[i].x, dy=y-A[i].y; const d=hypot(dx,dy);
+        if(d<1e-6){ stuck=true; x=A[i].x; y=A[i].y; break; }
+        const w=Ww[i]/d; numx+=A[i].x*w; numy+=A[i].y*w; den+=w;
       }
-      state.Ptransport = {x,y};
+      if(!stuck){ const nx=numx/den, ny=numy/den; if(hypot(nx-x, ny-y)<0.3) { x=nx; y=ny; break; } x=nx; y=ny; }
     }
+    return {x,y};
+  }
+  function deltaK(P){ return Kcost(P) - Kcost(P0()); }
 
-    function applyLabor(){
-      const {save,L} = state;
-      const dK = K(L) - K(state.Ptransport); // 偏差成本（每噸）
-      if(save >= dK){
-        state.Peffective = {...L};
-        state.lastInfo = `勞動節約 S = ${fmt(save)} ≥ 偏差成本 ΔK(L) = ${fmt(dK)} → 生產轉向 L。`;
-      }else{
-        state.Peffective = {...state.Ptransport};
-        state.lastInfo = `勞動節約 S = ${fmt(save)} < 偏差成本 ΔK(L) = ${fmt(dK)} → 仍留在運輸最小點 P。`;
+  // ====== Isodapan (critical) ======
+  function isoPath(S){
+    const center = P0();
+    const maxR = Math.max(W,H)*0.9;
+    const pts=[]; const step = 2*Math.PI/144; // smooth on phone
+    for(let a=0;a<2*Math.PI; a+=step){
+      // binary search along ray center -> dir
+      const dir = {x:Math.cos(a), y:Math.sin(a)};
+      let lo=0, hi=maxR; let ok=false; let mid=0;
+      for(let it=0; it<24; it++){
+        mid=(lo+hi)/2; const P={x:center.x+dir.x*mid, y:center.y+dir.y*mid};
+        const v=deltaK(P);
+        if(Math.abs(v-S)<0.8){ ok=true; break; }
+        if(v<S) lo=mid; else hi=mid;
       }
-      return {dK};
+      if(ok){ pts.push({x:center.x+dir.x*mid, y:center.y+dir.y*mid}); }
     }
+    return pts;
+  }
 
-    // 近似「臨界等費線」：解 ΔK(r,θ) = S，沿各角度二分搜尋半徑
-    function criticalIsodapane(points=96){
-      const pts=[]; const S = state.save; const P0 = state.Ptransport;
-      const K0 = K(P0);
-      for(let i=0;i<points;i++){
-        const th = i/points*2*Math.PI;
-        let lo=0, hi=Math.hypot(canvas.width,canvas.height);
-        for(let it=0; it<16; it++){
-          const mid=(lo+hi)/2;
-          const p = {x:P0.x+Math.cos(th)*mid, y:P0.y+Math.sin(th)*mid};
-          const dK = K(p)-K0;
-          if(dK<S) lo=mid; else hi=mid;
-        }
-        const r=hi; pts.push({x:P0.x+Math.cos(th)*r, y:P0.y+Math.sin(th)*r});
+  // ====== Heat grid ======
+  function drawHeat(ctx){
+    const step = Math.floor(Math.max(W,H)/28);
+    const P0p=P0(); const maxR = Math.hypot(W,H);
+    for(let y=0;y<H;y+=step){
+      for(let x=0;x<W;x+=step){
+        const v = deltaK({x,y});
+        const t = clamp(v/(state.As*(state.w1+state.w2+state.w3)*maxR*0.25), 0, 1);
+        const alpha = t*0.6; // darker when expensive
+        if(alpha<0.01) continue;
+        ctx.fillStyle = `rgba(0,0,0,${alpha})`;
+        ctx.fillRect(x,y,step,step);
       }
-      return pts;
     }
+  }
 
-    // --- Rendering --------------------------------------------------------
-    function draw(){
-      solveP();
-      const {dK} = applyLabor();
-      ctx.clearRect(0,0,canvas.width,canvas.height);
+  // ====== Draw ======
+  function draw(){
+    const ctx = cv.getContext('2d');
+    ctx.save();
+    ctx.clearRect(0,0,W,H);
+    // grid
+    ctx.strokeStyle='rgba(255,255,255,.05)'; ctx.lineWidth=1; ctx.beginPath();
+    const gh = Math.round( (Math.min(W,H))/16 );
+    for(let x=0;x<W;x+=gh){ ctx.moveTo(x,0); ctx.lineTo(x,H); }
+    for(let y=0;y<H;y+=gh){ ctx.moveTo(0,y); ctx.lineTo(W,y); }
+    ctx.stroke();
 
-      // 背景格
-      ctx.save();
-      ctx.strokeStyle = '#13202d'; ctx.lineWidth=1;
-      for(let x=0;x<canvas.width;x+=48){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,canvas.height);ctx.stroke()}
-      for(let y=0;y<canvas.height;y+=48){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(canvas.width,y);ctx.stroke()}
-      ctx.restore();
+    // heat
+    if(state.showHeat) drawHeat(ctx);
 
-      // 熱度雲：ΔK（相對 Ptransport）
-      if(state.showHeat){
-        const K0 = K(state.Ptransport);
-        const cell=6; // 行動裝置也順
-        const img = ctx.createImageData(canvas.width,canvas.height);
-        for(let y=0;y<canvas.height;y+=cell){
-          for(let x=0;x<canvas.width;x+=cell){
-            const dKloc = K({x,y}) - K0; // 每噸額外成本
-            // map 0..max to alpha; clamp at 120/噸（與 save 上限對齊）
-            const alpha = Math.max(0, Math.min(1, dKloc/120));
-            const shade = 0; // 黑雲
-            for(let yy=0; yy<cell; yy++){
-              for(let xx=0; xx<cell; xx++){
-                const idx = 4*((y+yy)*canvas.width + (x+xx));
-                img.data[idx+0]=shade;
-                img.data[idx+1]=shade;
-                img.data[idx+2]=shade;
-                img.data[idx+3]=alpha*180; // 透明度
-              }
-            }
-          }
-        }
-        ctx.putImageData(img,0,0);
+    const A1=px(state.M1), A2=px(state.M2), A3=px(state.K), L=px(state.L);
+    const p0 = P0();
+
+    // critical isodapan
+    if(state.showIso){
+      const iso = isoPath(state.S);
+      if(iso.length>10){
+        ctx.setLineDash([8,6]); ctx.lineWidth=2; ctx.strokeStyle='rgba(255,208,102,.95)';
+        ctx.beginPath(); ctx.moveTo(iso[0].x, iso[0].y);
+        for(const q of iso) ctx.lineTo(q.x,q.y);
+        ctx.closePath(); ctx.stroke();
+        ctx.setLineDash([]);
       }
-
-      // 等費線：以 ΔK = 10, 20, ..., 100 畫近似等高線（採樣）
-      if(state.showIso){
-        const K0 = K(state.Ptransport);
-        const steps = [10,20,30,40,60,80,100];
-        ctx.save(); ctx.strokeStyle='rgba(59,130,246,.8)'; ctx.lineWidth=1.25;
-        for(const S of steps){
-          const poly = sampleIsodapan(S,K0,72);
-          strokePoly(poly);
-        }
-        ctx.restore();
-      }
-
-      // 勞動臨界圈（S）
-      if(state.showLabor){
-        const circ = criticalIsodapane(96);
-        ctx.save(); ctx.setLineDash([6,6]); ctx.strokeStyle='rgba(234,179,8,.9)'; ctx.lineWidth=2;
-        strokePoly(circ,true);
-        ctx.restore();
-      }
-
-      // 連線三角形
-      line(state.M1,state.M2,'#22394d'); line(state.M2,state.K,'#22394d'); line(state.K,state.M1,'#22394d');
-
-      // 點位與標籤
-      dot(state.M1, 'M1', getCSS('--mat'));
-      dot(state.M2, 'M2', getCSS('--mat'));
-      dot(state.K,  'K',  getCSS('--cons'));
-      dot(state.L,  'L',  getCSS('--labor'));
-
-      // P（運輸最小）
-      dot(state.Ptransport, 'P₀', getCSS('--p'));
-      // 實際區位（考慮勞動）
-      ctx.save();
-      ctx.beginPath(); ctx.arc(state.Peffective.x, state.Peffective.y, 7, 0, Math.PI*2);
-      ctx.fillStyle = 'rgba(244,114,182,.15)'; ctx.fill();
-      ctx.strokeStyle = getCSS('--p'); ctx.lineWidth=2; ctx.stroke();
-      ctx.restore(); label(state.Peffective, '實際區位', getCSS('--p'));
-
-      // 說明盒
-      const G = state.a1+state.a2+state.a3;
-      const txt = [
-        `目前：a₁=${fmt(state.a1)}, a₂=${fmt(state.a2)}, a₃=${fmt(state.a3)}, 𝒜ₛ=${fmt(state.rate)}, S=${fmt(state.save)}`,
-        `黑色雲＝相對 P₀ 的額外運輸成本 ΔK。越黑＝每噸越貴（上限 120）。`,
-        state.lastInfo,
-        `直覺：增大某一材料權重 ⇒ 等費線向該材料傾斜，P₀會向該材料移動；提高 S ⇒ 黃色圈擴大，較容易滿足『轉往 L』條件。`,
-      ].join('<br>');
-      el('explainBox').innerHTML = txt;
     }
 
-    function sampleIsodapan(S, K0, rays){
-      const P0 = state.Ptransport; const pts=[];
-      for(let i=0;i<rays;i++){
-        const th = i/rays*2*Math.PI;
-        let lo=0, hi=Math.hypot(canvas.width,canvas.height);
-        for(let it=0; it<16; it++){
-          const mid=(lo+hi)/2;
-          const p={x:P0.x+Math.cos(th)*mid, y:P0.y+Math.sin(th)*mid};
-          const dK = K(p)-K0;
-          if(dK<S) lo=mid; else hi=mid;
-        }
-        pts.push({x:P0.x+Math.cos(th)*hi, y:P0.y+Math.sin(th)*hi});
-      }
-      return pts;
-    }
+    // rays P0 -> materials
+    ctx.lineWidth=2; ctx.strokeStyle='rgba(255,255,255,.15)';
+    ctx.beginPath(); ctx.moveTo(p0.x,p0.y); ctx.lineTo(A1.x,A1.y);
+    ctx.moveTo(p0.x,p0.y); ctx.lineTo(A2.x,A2.y);
+    ctx.moveTo(p0.x,p0.y); ctx.lineTo(A3.x,A3.y); ctx.stroke();
 
-    function strokePoly(pts, close=true){
-      if(!pts || pts.length<2) return;
-      ctx.beginPath(); ctx.moveTo(pts[0].x, pts[0].y);
-      for(let i=1;i<pts.length;i++) ctx.lineTo(pts[i].x, pts[i].y);
-      if(close) ctx.closePath(); ctx.stroke();
-    }
+    // points
+    const mark=(p,color,label)=>{ ctx.fillStyle=color; ctx.beginPath(); ctx.arc(p.x,p.y,10,0,Math.PI*2); ctx.fill();
+      ctx.font='600 14px system-ui'; ctx.fillStyle='rgba(255,255,255,.9)'; ctx.fillText(label,p.x+12,p.y-10); };
+    mark(A1,'#ef4444','M1'); mark(A2,'#06b6d4','M2'); mark(A3,'#22c55e','K');
+    mark(p0,'#ffffff','P₀'); mark(L,'#f59e0b','L');
 
-    function getCSS(varName){return getComputedStyle(document.documentElement).getPropertyValue(varName).trim();}
-    function line(p,q,color){ctx.save();ctx.strokeStyle=color;ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(q.x,q.y);ctx.stroke();ctx.restore();}
-    function label(p, text, color){ctx.save();ctx.fillStyle=color;ctx.font='12px ui-sans-serif,system-ui';ctx.fillText(text, p.x+8, p.y-8);ctx.restore();}
-    function dot(p, text, color){ctx.save();ctx.fillStyle=color;ctx.beginPath();ctx.arc(p.x,p.y,5,0,Math.PI*2);ctx.fill();ctx.restore(); label(p,text,color)}
+    // actual decision: move to L?
+    const dK = deltaK(L);
+    const willMove = dK <= state.S;
+    const P = willMove ? L : p0;
+    ctx.fillStyle = willMove ? 'rgba(245,158,11,.15)' : 'rgba(255,255,255,.08)';
+    ctx.beginPath(); ctx.arc(P.x,P.y,18,0,Math.PI*2); ctx.fill();
 
-    // --- Dragging ---------------------------------------------------------
-    const hitRadius = 14;
-    function pick(mx,my){
-      const keys=['M1','M2','K','L'];
-      for(const k of keys){ if(dist({x:mx,y:my}, state[k])<hitRadius) return k; }
-      return null;
-    }
-    canvas.addEventListener('pointerdown', e=>{
-      const rect=canvas.getBoundingClientRect();
-      const x=(e.clientX-rect.left)*canvas.width/rect.width;
-      const y=(e.clientY-rect.top)*canvas.height/rect.height;
-      state.dragging = pick(x,y);
-    });
-    canvas.addEventListener('pointermove', e=>{
-      if(!state.dragging) return;
-      const rect=canvas.getBoundingClientRect();
-      const x=(e.clientX-rect.left)*canvas.width/rect.width;
-      const y=(e.clientY-rect.top)*canvas.height/rect.height;
-      state[state.dragging]={x,y}; draw();
-    });
-    canvas.addEventListener('pointerup', ()=> state.dragging=null);
-    canvas.addEventListener('pointerleave', ()=> state.dragging=null);
+    // HUD
+    hud.innerHTML = `
+      <div class="chip">G = w₁+w₂+w₃ = <strong>${(state.w1+state.w2+state.w3).toFixed(2)}</strong></div>
+      <div class="chip">K(P₀) = <strong>${Kcost(p0).toFixed(1)}</strong></div>
+      <div class="chip">ΔK(L) = <strong>${dK.toFixed(1)}</strong></div>
+      <div class="chip">S = <strong>${state.S.toFixed(0)}</strong></div>
+      <div class="chip">決策：<strong>${willMove? '搬到 L（P=L）' : '留在 P₀'}</strong></div>`;
 
-    // --- Init -------------------------------------------------------------
-    syncUI(); draw();
+    ctx.restore();
+  }
+
+  // ====== Interaction (drag) ======
+  function pick(mx,my){
+    const pts=[['M1',state.M1],['M2',state.M2],['K',state.K],['L',state.L]];
+    let hit=null, best=1e9; for(const [k,p] of pts){ const q=px(p); const d=hypot(q.x-mx,q.y-my); if(d<28 && d<best){best=d; hit=k;} }
+    return hit;
+  }
+  cv.addEventListener('pointerdown',e=>{
+    const rect=cv.getBoundingClientRect();
+    const mx=(e.clientX-rect.left)*DPR, my=(e.clientY-rect.top)*DPR;
+    state.dragging = pick(mx,my);
+    if(state.dragging){ cv.setPointerCapture(e.pointerId); }
   });
-  </script>
+  cv.addEventListener('pointermove',e=>{
+    if(!state.dragging) return;
+    const rect=cv.getBoundingClientRect(); const mx=(e.clientX-rect.left)*DPR, my=(e.clientY-rect.top)*DPR;
+    const u=ux({x:mx,y:my});
+    const clampU=(p)=>({x:clamp(p.x,0.04,0.96), y:clamp(p.y,0.04,0.96)});
+    state[state.dragging] = clampU(u);
+    draw();
+  });
+  cv.addEventListener('pointerup',()=>{ state.dragging=null; });
+
+  // ====== Controls ======
+  function bindRange(el, on){ el.addEventListener('input',()=>on(parseFloat(el.value))); }
+  bindRange(w1El, v=>{ state.w1=v; vw1.textContent=v.toFixed(1); draw(); });
+  bindRange(w2El, v=>{ state.w2=v; vw2.textContent=v.toFixed(1); draw(); });
+  bindRange(w3El, v=>{ state.w3=v; vw3.textContent=v.toFixed(1); draw(); });
+  bindRange(asEl, v=>{ state.As=v; vas.textContent=v.toFixed(3); draw(); });
+  bindRange(sEl , v=>{ state.S =v;  vs.textContent =v.toFixed(0); draw(); });
+
+  btnIso.addEventListener('click',()=>{ state.showIso=!state.showIso; draw(); });
+  btnHeat.addEventListener('click',()=>{ state.showHeat=!state.showHeat; draw(); });
+  btnHelp.addEventListener('click',()=>{ sheet.classList.toggle('open'); });
+
+  // drag the sheet by handle
+  sheet.querySelector('.handle').addEventListener('click',()=>{ sheet.classList.toggle('open'); });
+
+  // ====== Self tests ======
+  function approx(a,b,t=12){ return Math.abs(a-b)<t; }
+  function runTests(){
+    const out=[];
+    // 1) Dominant weight pulls P₀
+    const bak={...state};
+    state.w1=4; state.w2=0.5; state.w3=0.5; draw();
+    const p0a=P0(); const a1=px(state.M1); out.push(['權重主導', dist(p0a,a1) < H*0.25]);
+    // 2) Symmetry (w1=w2, mirrored x of M1/M2 ⇒ p0 x near center)
+    state.w1=1; state.w2=1; state.M1.x=.30; state.M2.x=.70; draw();
+    const p0b=P0(); out.push(['對稱', approx(p0b.x, W*0.5, W*0.06)]);
+    // 3) Raise As shrink isodapan (R2<R1)
+    state.S=80; state.As=0.005; const iso1=isoPath(state.S); const r1=iso1.reduce((s,p)=>s+hypot(p.x-P0().x,p.y-P0().y),0)/iso1.length;
+    state.As=0.03; const iso2=isoPath(state.S); const r2=iso2.reduce((s,p)=>s+hypot(p.x-P0().x,p.y-P0().y),0)/Math.max(1,iso2.length);
+    out.push(['As↑ 半徑縮小', r2<r1]);
+    // 4) S↑ expands isodapan
+    state.As=0.01; state.S=40; const Rlo=isoPath(state.S).length; state.S=200; const Rhi=isoPath(state.S).length; out.push(['S↑ 線更外擴', Rhi>Rlo]);
+    // restore
+    Object.assign(state, bak); draw();
+    alert(out.map(([n,ok],i)=>`${i+1}. ${n}：${ok?'✅ 通過':'❌ 需檢查'}`).join('\n'));
+  }
+  btnTest.addEventListener('click', runTests);
+
+  // init
+  resize();
+  // open help slightly after load on desktop only
+  if(matchMedia('(min-width:900px)').matches){ setTimeout(()=>sheet.classList.add('open'), 400); }
+})();
+</script>
 </body>
 </html>
