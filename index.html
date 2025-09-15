@@ -1,358 +1,295 @@
 <!doctype html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>韋伯工業區位理論｜互動教學（手機優先）</title>
-  <style>
-    :root{
-      --bg:#0b1020; --panel:#111831; --ink:#e8eefc; --muted:#9fb0d7; --accent:#ffd166;
-      --m1:#ef4444; --m2:#06b6d4; --k:#22c55e; --l:#f59e0b; --p:#ffffff;
-    }
-    *{box-sizing:border-box}
-    html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Noto Sans TC","PingFang TC",sans-serif}
-    .app{display:flex;flex-direction:column;min-height:100dvh}
-    header{position:fixed;inset:auto 0 0 0;height:auto;z-index:5;pointer-events:none}
-    .hud{position:absolute;top:8px;left:8px;right:8px;display:flex;gap:8px;flex-wrap:wrap;pointer-events:auto}
-    .chip{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(6px);padding:6px 10px;border-radius:999px;font-size:12px}
-    .chip strong{color:var(--accent)}
-    .canvas-wrap{order:0;position:relative;width:100%;aspect-ratio:1170/2532;max-height:78vh;border-bottom:1px solid rgba(255,255,255,.08)}
-    canvas{display:block;width:100%;height:100%}
-    .controls{order:1;padding:10px 12px;background:var(--panel);display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:center}
-    .controls h3{grid-column:1/-1;margin:4px 0 0 0;font-size:14px;color:var(--muted);font-weight:600}
-    .row{display:grid;grid-template-columns:100px 1fr 68px;gap:8px;align-items:center}
-    label{font-size:13px;color:var(--muted)}
-    input[type=range]{width:100%}
-    .val{font-variant-numeric:tabular-nums;text-align:right}
-    .btn{display:inline-flex;align-items:center;gap:6px;border:1px solid rgba(255,255,255,.15);background:#0f1630;color:var(--ink);padding:6px 10px;border-radius:10px;cursor:pointer}
-    .btn:active{transform:translateY(1px)}
-
-    /* Bottom sheet (說明) */
-    .sheet{position:fixed;left:0;right:0;bottom:0;background:var(--panel);border-top-left-radius:16px;border-top-right-radius:16px;box-shadow:0 -10px 20px rgba(0,0,0,.35);transform:translateY(67%);transition:transform .25s ease;z-index:10}
-    .sheet.open{transform:translateY(0)}
-    .sheet .handle{width:42px;height:5px;border-radius:999px;background:rgba(255,255,255,.2);margin:8px auto}
-    .sheet .content{max-height:46vh;overflow:auto;padding:0 14px 16px}
-    .sheet h2{font-size:15px;margin:8px 0 4px;color:var(--accent)}
-    .sheet p,.sheet li{font-size:14px;color:#d6ddf5}
-    details{background:#0f1734;border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:6px 10px;margin:8px 0}
-    details>summary{cursor:pointer;color:#cbd5f7;font-weight:600}
-
-    /* Desktop tweak */
-    @media(min-width:900px){
-      .controls{grid-template-columns:1.1fr 1.1fr .8fr .8fr;align-items:end}
-      .controls h3{grid-column:auto}
-      .canvas-wrap{max-height:72vh}
-      .sheet .content{max-height:52vh}
-    }
-  </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>韋伯工業區位理論｜互動教學（手機優化）</title>
+<style>
+  :root{ --bg:#0b1020; --panel:#111831; --ink:#e8eefc; --muted:#9fb0d7; --accent:#ffd166;
+         --m1:#ef4444; --m2:#06b6d4; --k:#22c55e; --l:#f59e0b; }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);
+            font:16px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Arial,"Noto Sans TC","PingFang TC",sans-serif}
+  .wrap{display:flex;flex-direction:column;min-height:100dvh}
+  #stage{position:relative;width:100%;aspect-ratio:1170/700;max-height:60vh;border-bottom:1px solid rgba(255,255,255,.08)}
+  canvas{display:block;width:100%;height:100%}
+  .toolbar{position:absolute;left:8px;top:8px;display:flex;gap:6px;flex-wrap:wrap}
+  .chip{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(6px);
+        padding:6px 10px;border-radius:999px;font-size:12px}
+  .legend{position:absolute;right:8px;top:8px;background:rgba(10,12,18,.75);backdrop-filter:blur(4px);
+          border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:8px 10px;font-size:12px}
+  .legend i{display:inline-block;width:10px;height:10px;margin-right:6px;border-radius:50%}
+  .legend .m1{background:#ef4444}.legend .m2{background:#06b6d4}.legend .k{background:#22c55e}.legend .l{background:#f59e0b}
+  .legend .iso{display:inline-block;width:18px;height:0;border-top:2px dashed var(--accent)}
+  .controls{padding:10px 12px;background:var(--panel)}
+  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+  .ctrl{background:#0f1734;border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:10px}
+  .ctrl label{display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px;color:var(--muted)}
+  .ctrl input[type=range]{width:100%}
+  .row{grid-column:1/-1;display:flex;gap:10px;flex-wrap:wrap}
+  .btn{border:1px solid rgba(255,255,255,.15);background:#0f1630;color:var(--ink);
+       padding:6px 10px;border-radius:10px;cursor:pointer}
+  .btn:active{transform:translateY(1px)}
+  .sheet{position:fixed;left:0;right:0;bottom:0;background:var(--panel);
+         border-top-left-radius:16px;border-top-right-radius:16px;box-shadow:0 -10px 20px rgba(0,0,0,.35);
+         transform:translateY(65%);transition:transform .25s ease;z-index:20}
+  .sheet .handle{width:42px;height:5px;border-radius:999px;background:rgba(255,255,255,.2);margin:8px auto}
+  .sheet .content{max-height:46vh;overflow:auto;padding:0 14px 16px}
+  .sheet h2{font-size:15px;margin:8px 0 4px;color:var(--accent)}
+  .sheet p,.sheet li{font-size:14px;color:#d6ddf5}
+  .sheet.open{transform:translateY(0);pointer-events:auto}
+  .sheet.closed{pointer-events:none}
+  @media (min-width:900px){
+    #stage{max-height:66vh}
+    .grid{grid-template-columns:repeat(4,1fr)}
+    .sheet .content{max-height:52vh}
+  }
+</style>
 </head>
 <body>
-<div class="app">
-  <div class="canvas-wrap">
+<div class="wrap">
+  <section id="stage">
     <canvas id="cv" aria-label="Weber 模型互動畫布"></canvas>
-    <div class="hud" id="hud"></div>
-  </div>
-
-  <div class="controls" id="controls">
-    <h3>材料權重（每單位產品的噸數）：</h3>
-    <div class="row"><label> M1（紅）</label><input id="w1" type="range" min="0" max="5" step="0.1" value="1"><div class="val" id="vw1">1.0</div></div>
-    <div class="row"><label> M2（藍）</label><input id="w2" type="range" min="0" max="5" step="0.1" value="1"><div class="val" id="vw2">1.0</div></div>
-    <div class="row"><label> K（綠）</label><input id="w3" type="range" min="0" max="5" step="0.1" value="1"><div class="val" id="vw3">1.0</div></div>
-
-    <h3>費率與勞動：</h3>
-    <div class="row"><label> 費率 As（噸公里成本）</label><input id="as" type="range" min="0" max="0.05" step="0.001" value="0.01"><div class="val" id="vas">0.010</div></div>
-    <div class="row"><label> 勞動節約 S（每單位）</label><input id="s" type="range" min="0" max="300" step="1" value="30"><div class="val" id="vs">30</div></div>
-
-    <div class="row" style="grid-column:1/-1;gap:10px">
-      <button class="btn" id="btn-iso">顯示/隱藏 臨界等費線</button>
-      <button class="btn" id="btn-heat">顯示/隱藏 ΔK 熱度</button>
-      <button class="btn" id="btn-test">自檢</button>
-      <button class="btn" id="btn-help">說明</button>
+    <div class="toolbar" id="chips"></div>
+    <div class="legend">
+      <div><i class="m1"></i>M1 原料1</div>
+      <div><i class="m2"></i>M2 原料2</div>
+      <div><i class="k"></i>K 消費地</div>
+      <div><i class="l"></i>L 勞動地</div>
+      <div style="margin-top:6px"><span class="iso"></span> 臨界等費線 ΔK=S</div>
     </div>
-  </div>
+  </section>
+
+  <section class="controls">
+    <div class="grid">
+      <div class="ctrl"><label>原料1權重 w1 <b id="w1v"></b></label><input id="w1" type="range" min="0" max="10" step="0.5" value="1"></div>
+      <div class="ctrl"><label>原料2權重 w2 <b id="w2v"></b></label><input id="w2" type="range" min="0" max="10" step="0.5" value="1"></div>
+      <div class="ctrl"><label>消費地權重 wK <b id="w3v"></b></label><input id="w3" type="range" min="0" max="10" step="0.5" value="1"></div>
+      <div class="ctrl"><label>費率 As（噸公里成本） <b id="asv"></b></label><input id="as" type="range" min="0.5" max="5" step="0.1" value="1"></div>
+      <div class="ctrl"><label>勞動節約 S（相對刻度） <b id="sv"></b></label><input id="srel" type="range" min="0" max="100" step="1" value="20"></div>
+      <div class="ctrl"><label>縮放 Zoom <b id="zoomv"></b></label><input id="zoom" type="range" min="0.6" max="1.6" step="0.05" value="0.85"></div>
+      <div class="row">
+        <button class="btn" id="btnIso">顯示/隱藏 臨界等費線</button>
+        <button class="btn" id="btnHeat">顯示/隱藏 ΔK 熱度</button>
+        <button class="btn" id="btnHelp">說明</button>
+      </div>
+    </div>
+  </section>
 </div>
 
-<!-- Bottom sheet：手機優先說明，不遮住畫布 -->
-<section class="sheet" id="sheet">
-  <div class="handle"></div>
+<section class="sheet closed" id="sheet">
+  <div class="handle" id="handle"></div>
   <div class="content">
     <h2>怎麼讀這個圖？</h2>
-    <p>紅 <b>M1</b>、藍 <b>M2</b>、綠 <b>K</b> 是三個材料倉庫；黃 <b>L</b> 是低工資（或高效率）的勞動地；白 <b>P₀</b> 是只看運輸成本的最小點（加權幾何中位數）。紫 <b>P</b> 是實際生產地：若 <code>ΔK(L) ≤ S</code>，工廠會搬到 <b>L</b>，否則留在 <b>P₀</b>。</p>
-    <p>黑色雲狀為 <code>ΔK(x)=K(x)-K(P₀)</code> 的熱度，越黑＝偏離成本越高。黃色虛線是 <b>臨界等費線</b>：<code>ΔK(x)=S</code> 的等高線。把 <b>L</b> 拖進線內 ⇒ 會搬；拖到線外 ⇒ 不搬。</p>
-
-    <details open>
-      <summary>費率 As 與勞動節約 S 怎麼影響？</summary>
-      <ul>
-        <li><b>As↑</b>：每公里更貴 → 同距離的 <code>ΔK</code> 變大 → 臨界線縮小 → 不易因勞動而搬。</li>
-        <li><b>As↓</b>：運輸便宜 → 臨界線擴大 → 較易搬去 L。</li>
-        <li><b>S↑</b>：去 L 的每單位勞動節約變大 → 臨界線擴大 → 容易搬。</li>
-        <li><b>S↓</b>：節約小 → 臨界線縮小 → 多半留在 P₀。</li>
-      </ul>
-      <p>數學上：<code>K(P)=As·∑ wᵢ·d(P,Aᵢ)</code>；<code>ΔK(L)=K(L)-K(P₀)</code>。若 <code>ΔK(L) ≤ S</code> ⇒ 勞動地取代最小點。</p>
-    </details>
-
-    <details>
-      <summary>更多韋伯重點（濃縮版）</summary>
-      <ul>
-        <li><b>遍在 vs. 區位材料</b>：遍在（空氣、水、磚土…）→ 多在消費地；區位材料（礦、煤…）→ 牽引至產地。</li>
-        <li><b>材料指數 / 區位權重 G</b>：每單位產品運輸的總重量。<b>G↑</b> ⇒ 偏離更貴、等費線更緊。</li>
-        <li><b>等費線（Isodapanen）</b>：離 P₀ 等額外運費的等高線；臨界等費線與 <b>S</b> 一一對應。</li>
-        <li><b>費率制度</b>：有效費率改變等費線密度（體積貨、階梯運價都可視為權重或距離的加減）。</li>
-        <li><b>水運/陸運協同</b>：低費率通道可改寫最佳倉庫與 P₀ 的位置（之後可加成模組）。</li>
-        <li><b>多階段生產</b>：常出現 P₁、P₂… 各自最小點，除非條件特殊，很少完全重合。</li>
-        <li><b>集聚</b>：若集聚節約 <code>f(M)</code> 超過偏離成本，會在臨界段聚合；集聚半徑 <code>R ∝ f(M)/(As·G)</code>。</li>
-      </ul>
-    </details>
-
-    <details>
-      <summary>快速操作</summary>
-      <ul>
-        <li>拖動點（M1/M2/K/L）或拉動滑桿（wᵢ、As、S）。</li>
-        <li>開關 ΔK 熱度 / 臨界等費線。</li>
-        <li>點「自檢」跑幾個可視化測試。</li>
-      </ul>
-    </details>
+    <p>紅 <b>M1</b>、藍 <b>M2</b>、綠 <b>K</b> 是兩種原料與消費地；白 <b>P₀</b> 是只看運輸成本的最小點；若把 <b>L</b> 拖進臨界線內且 <code>ΔK(L) ≤ S</code>，工廠就會搬到 <b>L</b>。</p>
+    <ul>
+      <li>黑雲：<code>ΔK(x)=K(x)-K(P₀)</code>，越黑＝偏離成本越高。</li>
+      <li>黃虛線：<b>臨界等費線</b>，滿足 <code>ΔK=S</code>。把 <b>L</b> 拖進圈 ⇒ 會搬；拖到圈外 ⇒ 不搬。</li>
+      <li>S 為相對刻度（依當前畫面自動換算），避免臨界圈超出畫面。</li>
+    </ul>
+    <h2>As 與 S 如何影響？</h2>
+    <ul>
+      <li><b>As ↑</b>：每公里更貴 → ΔK 上升更快 → 圈縮小 → 較難搬。</li>
+      <li><b>S ↑</b>：勞動節約變大 → 圈放大 → 較易搬。</li>
+    </ul>
   </div>
 </section>
 
 <script>
 (function(){
   'use strict';
-  // ====== Geometry helpers ======
-  const hypot = Math.hypot;
-  const dist = (a,b)=>hypot(a.x-b.x, a.y-b.y);
-  const clamp=(v,min,max)=>v<min?min:(v>max?max:v);
-
-  // ====== DOM ======
   const cv = document.getElementById('cv');
-  const hud = document.getElementById('hud');
-  const sheet = document.getElementById('sheet');
-  const btnIso = document.getElementById('btn-iso');
-  const btnHeat = document.getElementById('btn-heat');
-  const btnTest = document.getElementById('btn-test');
-  const btnHelp = document.getElementById('btn-help');
+  const ctx = cv.getContext('2d');
+  let DPR = Math.max(1, window.devicePixelRatio||1);
 
-  const w1El = document.getElementById('w1');
-  const w2El = document.getElementById('w2');
-  const w3El = document.getElementById('w3');
-  const asEl = document.getElementById('as');
-  const sEl  = document.getElementById('s');
-  const vw1 = document.getElementById('vw1');
-  const vw2 = document.getElementById('vw2');
-  const vw3 = document.getElementById('vw3');
-  const vas = document.getElementById('vas');
-  const vs  = document.getElementById('vs');
+  const view = { z: 0.85 };
 
-  // ====== Canvas logical size tuned for 1170x2532 ratio ======
-  let DPR = Math.max(1, Math.min(3, window.devicePixelRatio||1));
-  let W = 1170, H = 2532; // logical
-  function resize(){
-    const rect = cv.parentElement.getBoundingClientRect();
-    const ratio = 1170/2532;
-    let w = rect.width; let h = rect.height;
-    // keep container aspect by CSS; but fix backing store
-    W = Math.round(w * DPR);
-    H = Math.round(h * DPR);
-    cv.width = W; cv.height = H; cv.style.width = w+'px'; cv.style.height = h+'px';
-    DPR = Math.max(1, Math.min(3, window.devicePixelRatio||1));
-    draw();
-  }
-  window.addEventListener('resize', resize);
+  const $ = id => document.getElementById(id);
+  const w1=$('w1'), w2=$('w2'), w3=$('w3'), as=$('as'), srel=$('srel'), zoom=$('zoom');
+  const w1v=$('w1v'), w2v=$('w2v'), w3v=$('w3v'), asv=$('asv'), sv=$('sv'), zoomv=$('zoomv');
+  const chips = $('chips');
+  const btnIso = $('btnIso'), btnHeat = $('btnHeat'), btnHelp = $('btnHelp');
 
-  // ====== State ======
-  const state = {
-    M1:{x:0.25, y:0.28}, M2:{x:0.75, y:0.30}, K:{x:0.50, y:0.80}, L:{x:0.20, y:0.70},
-    w1:1, w2:1, w3:1, As:0.01, S:30,
-    showIso:true, showHeat:true,
-    dragging:null
+  const sheet = $('sheet'), handle=$('handle');
+  const setSheetOpen = (open)=>{ sheet.classList.toggle('open',open); sheet.classList.toggle('closed',!open); };
+  setSheetOpen(false);
+  handle.addEventListener('click', ()=>setSheetOpen(!sheet.classList.contains('open')));
+
+  const Pts = {
+    M1:{x:420,y:220,w:1,color:'#ef4444'},
+    M2:{x:850,y:240,w:1,color:'#06b6d4'},
+    K :{x:600,y:480,w:1,color:'#22c55e'},
+    L :{x:760,y:420,w:1,color:'#f59e0b'}
   };
 
-  // ====== Cost functions ======
-  function px(p){ return {x:p.x*W, y:p.y*H}; }
-  function ux(p){ return {x: p.x/W, y: p.y/H}; }
-  function Kcost(P){ // transport cost
-    const A1 = px(state.M1), A2 = px(state.M2), A3 = px(state.K);
-    return state.As*( state.w1*dist(P,A1) + state.w2*dist(P,A2) + state.w3*dist(P,A3) );
+  function resize(){
+    const r = cv.parentElement.getBoundingClientRect();
+    DPR = Math.max(1, window.devicePixelRatio||1);
+    cv.width = Math.round(r.width * DPR);
+    cv.height= Math.round(r.height* DPR);
+    cv.style.width  = r.width+'px';
+    cv.style.height = r.height+'px';
+    draw();
   }
-  function P0(){ // weighted geometric median via Weiszfeld
-    const A = [px(state.M1), px(state.M2), px(state.K)];
-    const Ww = [state.w1, state.w2, state.w3];
-    // start at weighted centroid
-    let x=0,y=0, s=0; for(let i=0;i<3;i++){ x+=A[i].x*Ww[i]; y+=A[i].y*Ww[i]; s+=Ww[i]; }
-    x/=s; y/=s;
-    for(let it=0; it<80; it++){
-      let numx=0,numy=0,den=0; let stuck=false;
-      for(let i=0;i<3;i++){
-        const dx=x-A[i].x, dy=y-A[i].y; const d=hypot(dx,dy);
-        if(d<1e-6){ stuck=true; x=A[i].x; y=A[i].y; break; }
-        const w=Ww[i]/d; numx+=A[i].x*w; numy+=A[i].y*w; den+=w;
-      }
-      if(!stuck){ const nx=numx/den, ny=numy/den; if(hypot(nx-x, ny-y)<0.3) { x=nx; y=ny; break; } x=nx; y=ny; }
+  window.addEventListener('resize', resize, {passive:true});
+
+  const H = Math.hypot;
+  function Kcost(p){
+    const A = +as.value;
+    const {M1,M2,K} = Pts;
+    return A*(M1.w*H(p.x-M1.x,p.y-M1.y) + M2.w*H(p.x-M2.x,p.y-M2.y) + K.w*H(p.x-K.x,p.y-K.y));
+  }
+  function deltaK(p, p0){ return Math.max(0, Kcost(p)-Kcost(p0)); }
+
+  function P0(){
+    const {M1,M2,K}=Pts; const pts=[M1,M2,K];
+    let x=(M1.x+M2.x+K.x)/3, y=(M1.y+M2.y+K.y)/3;
+    for(let i=0;i<80;i++){
+      let nx=0,ny=0,den=0;
+      for(const q of pts){ const dx=x-q.x, dy=y-q.y, d=H(dx,dy)||1e-6, w=q.w/d; nx+=w*q.x; ny+=w*q.y; den+=w; }
+      const xx=nx/den, yy=ny/den; if(H(xx-x,yy-y)<0.1){x=xx; y=yy; break;} x=xx; y=yy;
     }
     return {x,y};
   }
-  function deltaK(P){ return Kcost(P) - Kcost(P0()); }
 
-  // ====== Isodapan (critical) ======
-  function isoPath(S){
-    const center = P0();
-    const maxR = Math.max(W,H)*0.9;
-    const pts=[]; const step = 2*Math.PI/144; // smooth on phone
-    for(let a=0;a<2*Math.PI; a+=step){
-      // binary search along ray center -> dir
-      const dir = {x:Math.cos(a), y:Math.sin(a)};
-      let lo=0, hi=maxR; let ok=false; let mid=0;
-      for(let it=0; it<24; it++){
-        mid=(lo+hi)/2; const P={x:center.x+dir.x*mid, y:center.y+dir.y*mid};
-        const v=deltaK(P);
-        if(Math.abs(v-S)<0.8){ ok=true; break; }
-        if(v<S) lo=mid; else hi=mid;
-      }
-      if(ok){ pts.push({x:center.x+dir.x*mid, y:center.y+dir.y*mid}); }
+  let deltaMax = 100;
+  let showIso=true, showHeat=true;
+
+  function drawHeat(p0){
+    if(!showHeat) return;
+    const step = Math.max(8, Math.round(Math.min(cv.width,cv.height)/90));
+    deltaMax=0;
+    for(let y=0;y<cv.height;y+=step)for(let x=0;x<cv.width;x+=step){
+      const dk = deltaK(toWorld({x,y}), p0); if(dk>deltaMax) deltaMax=dk;
     }
-    return pts;
-  }
-
-  // ====== Heat grid ======
-  function drawHeat(ctx){
-    const step = Math.floor(Math.max(W,H)/28);
-    const P0p=P0(); const maxR = Math.hypot(W,H);
-    for(let y=0;y<H;y+=step){
-      for(let x=0;x<W;x+=step){
-        const v = deltaK({x,y});
-        const t = clamp(v/(state.As*(state.w1+state.w2+state.w3)*maxR*0.25), 0, 1);
-        const alpha = t*0.6; // darker when expensive
-        if(alpha<0.01) continue;
-        ctx.fillStyle = `rgba(0,0,0,${alpha})`;
-        ctx.fillRect(x,y,step,step);
-      }
-    }
-  }
-
-  // ====== Draw ======
-  function draw(){
-    const ctx = cv.getContext('2d');
+    deltaMax=Math.max(1,deltaMax);
     ctx.save();
-    ctx.clearRect(0,0,W,H);
-    // grid
-    ctx.strokeStyle='rgba(255,255,255,.05)'; ctx.lineWidth=1; ctx.beginPath();
-    const gh = Math.round( (Math.min(W,H))/16 );
-    for(let x=0;x<W;x+=gh){ ctx.moveTo(x,0); ctx.lineTo(x,H); }
-    for(let y=0;y<H;y+=gh){ ctx.moveTo(0,y); ctx.lineTo(W,y); }
-    ctx.stroke();
-
-    // heat
-    if(state.showHeat) drawHeat(ctx);
-
-    const A1=px(state.M1), A2=px(state.M2), A3=px(state.K), L=px(state.L);
-    const p0 = P0();
-
-    // critical isodapan
-    if(state.showIso){
-      const iso = isoPath(state.S);
-      if(iso.length>10){
-        ctx.setLineDash([8,6]); ctx.lineWidth=2; ctx.strokeStyle='rgba(255,208,102,.95)';
-        ctx.beginPath(); ctx.moveTo(iso[0].x, iso[0].y);
-        for(const q of iso) ctx.lineTo(q.x,q.y);
-        ctx.closePath(); ctx.stroke();
-        ctx.setLineDash([]);
-      }
+    for(let y=0;y<cv.height;y+=step)for(let x=0;x<cv.width;x+=step){
+      const dk = deltaK(toWorld({x,y}), p0);
+      let a = Math.min(1, dk/(0.9*deltaMax)); a = Math.pow(a,0.7);
+      ctx.fillStyle=`rgba(0,0,0,${a*0.45})`; ctx.fillRect(x,y,step,step);
     }
-
-    // rays P0 -> materials
-    ctx.lineWidth=2; ctx.strokeStyle='rgba(255,255,255,.15)';
-    ctx.beginPath(); ctx.moveTo(p0.x,p0.y); ctx.lineTo(A1.x,A1.y);
-    ctx.moveTo(p0.x,p0.y); ctx.lineTo(A2.x,A2.y);
-    ctx.moveTo(p0.x,p0.y); ctx.lineTo(A3.x,A3.y); ctx.stroke();
-
-    // points
-    const mark=(p,color,label)=>{ ctx.fillStyle=color; ctx.beginPath(); ctx.arc(p.x,p.y,10,0,Math.PI*2); ctx.fill();
-      ctx.font='600 14px system-ui'; ctx.fillStyle='rgba(255,255,255,.9)'; ctx.fillText(label,p.x+12,p.y-10); };
-    mark(A1,'#ef4444','M1'); mark(A2,'#06b6d4','M2'); mark(A3,'#22c55e','K');
-    mark(p0,'#ffffff','P₀'); mark(L,'#f59e0b','L');
-
-    // actual decision: move to L?
-    const dK = deltaK(L);
-    const willMove = dK <= state.S;
-    const P = willMove ? L : p0;
-    ctx.fillStyle = willMove ? 'rgba(245,158,11,.15)' : 'rgba(255,255,255,.08)';
-    ctx.beginPath(); ctx.arc(P.x,P.y,18,0,Math.PI*2); ctx.fill();
-
-    // HUD
-    hud.innerHTML = `
-      <div class="chip">G = w₁+w₂+w₃ = <strong>${(state.w1+state.w2+state.w3).toFixed(2)}</strong></div>
-      <div class="chip">K(P₀) = <strong>${Kcost(p0).toFixed(1)}</strong></div>
-      <div class="chip">ΔK(L) = <strong>${dK.toFixed(1)}</strong></div>
-      <div class="chip">S = <strong>${state.S.toFixed(0)}</strong></div>
-      <div class="chip">決策：<strong>${willMove? '搬到 L（P=L）' : '留在 P₀'}</strong></div>`;
-
     ctx.restore();
   }
-
-  // ====== Interaction (drag) ======
-  function pick(mx,my){
-    const pts=[['M1',state.M1],['M2',state.M2],['K',state.K],['L',state.L]];
-    let hit=null, best=1e9; for(const [k,p] of pts){ const q=px(p); const d=hypot(q.x-mx,q.y-my); if(d<28 && d<best){best=d; hit=k;} }
-    return hit;
+  function drawIso(p0){
+    if(!showIso){ sv.textContent = `${srel.value}%`; return {inside:false,S:0}; }
+    const S = 0.9*deltaMax*(+srel.value)/100;
+    sv.textContent = `${srel.value}%（實際ΔK≈${S.toFixed(1)}）`;
+    const MAXR = Math.hypot(cv.width,cv.height);
+    const poly=[];
+    for(let ang=0; ang<360; ang+=2){
+      const th=ang*Math.PI/180; let lo=0, hi=MAXR, found=null;
+      for(let t=0;t<18;t++){
+        const mid=(lo+hi)/2, sx=p0.x+Math.cos(th)*mid, sy=p0.y+Math.sin(th)*mid;
+        if(sx<0||sx>cv.width||sy<0||sy>cv.height){ hi=mid; continue; }
+        const d=deltaK(toWorld({x:sx,y:sy}), p0)-S;
+        if(Math.abs(d)<0.5){ found={x:sx,y:sy}; break; }
+        (d>0)? hi=mid : lo=mid;
+      }
+      if(found) poly.push(found);
+    }
+    if(poly.length>2){
+      ctx.save(); ctx.strokeStyle='rgba(255,208,102,.95)'; ctx.setLineDash([8,6]); ctx.lineWidth=2;
+      ctx.beginPath(); ctx.moveTo(poly[0].x,poly[0].y); for(let i=1;i<poly.length;i++) ctx.lineTo(poly[i].x,poly[i].y);
+      ctx.closePath(); ctx.stroke(); ctx.setLineDash([]); ctx.restore();
+    }
+    return { inside: pointInPolygon(toScreen(Pts.L), poly), S };
   }
-  cv.addEventListener('pointerdown',e=>{
-    const rect=cv.getBoundingClientRect();
-    const mx=(e.clientX-rect.left)*DPR, my=(e.clientY-rect.top)*DPR;
-    state.dragging = pick(mx,my);
-    if(state.dragging){ cv.setPointerCapture(e.pointerId); }
-  });
-  cv.addEventListener('pointermove',e=>{
-    if(!state.dragging) return;
-    const rect=cv.getBoundingClientRect(); const mx=(e.clientX-rect.left)*DPR, my=(e.clientY-rect.top)*DPR;
-    const u=ux({x:mx,y:my});
-    const clampU=(p)=>({x:clamp(p.x,0.04,0.96), y:clamp(p.y,0.04,0.96)});
-    state[state.dragging] = clampU(u);
-    draw();
-  });
-  cv.addEventListener('pointerup',()=>{ state.dragging=null; });
-
-  // ====== Controls ======
-  function bindRange(el, on){ el.addEventListener('input',()=>on(parseFloat(el.value))); }
-  bindRange(w1El, v=>{ state.w1=v; vw1.textContent=v.toFixed(1); draw(); });
-  bindRange(w2El, v=>{ state.w2=v; vw2.textContent=v.toFixed(1); draw(); });
-  bindRange(w3El, v=>{ state.w3=v; vw3.textContent=v.toFixed(1); draw(); });
-  bindRange(asEl, v=>{ state.As=v; vas.textContent=v.toFixed(3); draw(); });
-  bindRange(sEl , v=>{ state.S =v;  vs.textContent =v.toFixed(0); draw(); });
-
-  btnIso.addEventListener('click',()=>{ state.showIso=!state.showIso; draw(); });
-  btnHeat.addEventListener('click',()=>{ state.showHeat=!state.showHeat; draw(); });
-  btnHelp.addEventListener('click',()=>{ sheet.classList.toggle('open'); });
-
-  // drag the sheet by handle
-  sheet.querySelector('.handle').addEventListener('click',()=>{ sheet.classList.toggle('open'); });
-
-  // ====== Self tests ======
-  function approx(a,b,t=12){ return Math.abs(a-b)<t; }
-  function runTests(){
-    const out=[];
-    // 1) Dominant weight pulls P₀
-    const bak={...state};
-    state.w1=4; state.w2=0.5; state.w3=0.5; draw();
-    const p0a=P0(); const a1=px(state.M1); out.push(['權重主導', dist(p0a,a1) < H*0.25]);
-    // 2) Symmetry (w1=w2, mirrored x of M1/M2 ⇒ p0 x near center)
-    state.w1=1; state.w2=1; state.M1.x=.30; state.M2.x=.70; draw();
-    const p0b=P0(); out.push(['對稱', approx(p0b.x, W*0.5, W*0.06)]);
-    // 3) Raise As shrink isodapan (R2<R1)
-    state.S=80; state.As=0.005; const iso1=isoPath(state.S); const r1=iso1.reduce((s,p)=>s+hypot(p.x-P0().x,p.y-P0().y),0)/iso1.length;
-    state.As=0.03; const iso2=isoPath(state.S); const r2=iso2.reduce((s,p)=>s+hypot(p.x-P0().x,p.y-P0().y),0)/Math.max(1,iso2.length);
-    out.push(['As↑ 半徑縮小', r2<r1]);
-    // 4) S↑ expands isodapan
-    state.As=0.01; state.S=40; const Rlo=isoPath(state.S).length; state.S=200; const Rhi=isoPath(state.S).length; out.push(['S↑ 線更外擴', Rhi>Rlo]);
-    // restore
-    Object.assign(state, bak); draw();
-    alert(out.map(([n,ok],i)=>`${i+1}. ${n}：${ok?'✅ 通過':'❌ 需檢查'}`).join('\n'));
+  function pointInPolygon(pt, poly){
+    if(!poly||poly.length<3) return false; let inside=false;
+    for(let i=0,j=poly.length-1;i<poly.length;j=i++){
+      const xi=poly[i].x,yi=poly[i].y,xj=poly[j].x,yj=poly[j].y;
+      const inter=((yi>pt.y)!=(yj>pt.y))&&(pt.x < (xj-xi)*(pt.y-yi)/(yj-yi+1e-9)+xi);
+      if(inter) inside=!inside;
+    }
+    return inside;
   }
-  btnTest.addEventListener('click', runTests);
 
-  // init
+  function toScreen(p){ return {x:p.x*DPR*view.z, y:p.y*DPR*view.z}; }
+  function toWorld(p){ return {x:p.x/(DPR*view.z), y:p.y/(DPR*view.z)}; }
+
+  function draw(){
+    Pts.M1.w=+w1.value; w1v.textContent=(+w1.value).toFixed(1);
+    Pts.M2.w=+w2.value; w2v.textContent=(+w2.value).toFixed(1);
+    Pts.K.w =+w3.value; w3v.textContent=(+w3.value).toFixed(1);
+    zoomv.textContent = view.z.toFixed(2);
+    asv.textContent=(+as.value).toFixed(2);
+
+    ctx.setTransform(1,0,0,1,0,0);
+    ctx.clearRect(0,0,cv.width,cv.height);
+    ctx.setTransform(DPR*view.z,0,0,DPR*view.z,0,0);
+
+    ctx.strokeStyle='rgba(255,255,255,.05)'; ctx.lineWidth=1/DPR;
+    ctx.beginPath(); const gh=32; 
+    for(let x=0;x<cv.width/(DPR*view.z);x+=gh){ctx.moveTo(x,0);ctx.lineTo(x,cv.height/(DPR*view.z));}
+    for(let y=0;y<cv.height/(DPR*view.z);y+=gh){ctx.moveTo(0,y);ctx.lineTo(cv.width/(DPR*view.z),y);} 
+    ctx.stroke();
+
+    const p0 = P0();
+    drawHeat(p0);
+    const iso=drawIso(p0);
+
+    ctx.strokeStyle='rgba(59,130,246,.9)'; ctx.lineWidth=1.8/DPR;
+    ctx.beginPath(); ctx.moveTo(Pts.M1.x,Pts.M1.y); ctx.lineTo(Pts.M2.x,Pts.M2.y); ctx.lineTo(Pts.K.x,Pts.K.y); ctx.closePath(); ctx.stroke();
+
+    drawDot(Pts.M1,'M1', '#ef4444'); drawDot(Pts.M2,'M2', '#06b6d4');
+    drawDot(Pts.K ,'K' , '#22c55e'); drawDot(Pts.L ,'L' , '#f59e0b');
+
+    // ==== P（永遠白色）。若決策搬到 L，外圈加金色環 ====
+    const moveToL = iso.inside;
+    const Pcur = moveToL ? Pts.L : p0;
+    // 實心白點
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath(); ctx.arc(Pcur.x, Pcur.y, 6, 0, Math.PI*2); ctx.fill();
+    // 若搬到 L，用金色細環提示
+    if (moveToL){
+      ctx.strokeStyle = 'rgba(245,158,11,.9)';
+      ctx.lineWidth = 2/DPR;
+      ctx.beginPath(); ctx.arc(Pcur.x, Pcur.y, 10, 0, Math.PI*2); ctx.stroke();
+    }
+    ctx.fillStyle='#fff'; ctx.font='12px system-ui'; ctx.fillText('P', Pcur.x+10, Pcur.y-10);
+    // =====================================================
+
+    chips.innerHTML='';
+    chip('G', (Pts.M1.w+Pts.M2.w+Pts.K.w).toFixed(2));
+    chip('K(P₀)', Kcost(p0).toFixed(1));
+    chip('ΔK(L)', deltaK(Pts.L, p0).toFixed(1));
+    chip('S(實際)', iso.S.toFixed(1));
+    chip('決策', moveToL?'搬去 L':'留在 P₀');
+  }
+  function chip(label, val){ const d=document.createElement('div'); d.className='chip'; d.innerHTML=`<b>${label}</b> ${val}`; chips.appendChild(d); }
+
+  function drawDot(pt, name, color){
+    ctx.fillStyle=color; ctx.beginPath(); ctx.arc(pt.x,pt.y,6,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,.9)'; ctx.font='12px system-ui'; ctx.fillText(name, pt.x+9, pt.y-9);
+  }
+
+  let dragging=null, off={x:0,y:0};
+  cv.addEventListener('pointerdown', e=>{
+    const p = toWorld(getMouse(e));
+    const rad = 14/view.z;
+    for(const k of ['M1','M2','K','L']){
+      const q=Pts[k]; if(H(p.x-q.x,p.y-q.y) < rad){ dragging=k; off={x:p.x-q.x,y:p.y-q.y}; break; }
+    }
+    if(dragging) cv.setPointerCapture(e.pointerId);
+  });
+  cv.addEventListener('pointermove', e=>{
+    if(!dragging) return;
+    const p = toWorld(getMouse(e)); const q = Pts[dragging];
+    q.x = p.x - off.x; q.y = p.y - off.y; draw();
+  });
+  cv.addEventListener('pointerup', ()=>{ dragging=null; });
+
+  function getMouse(e){ const r=cv.getBoundingClientRect(); return {x:(e.clientX-r.left)*DPR, y:(e.clientY-r.top)*DPR}; }
+
+  const bind = (el, fn)=>{ el.addEventListener('input', fn); el.addEventListener('change', fn); };
+  [w1,w2,w3,as,srel].forEach(el=>bind(el, draw));
+  bind(zoom, ()=>{ view.z = +zoom.value; draw(); });
+  btnIso.addEventListener('click', ()=>{ showIso=!showIso; draw(); });
+  btnHeat.addEventListener('click', ()=>{ showHeat=!showHeat; draw(); });
+  btnHelp.addEventListener('click', ()=> setSheetOpen(!sheet.classList.contains('open')) );
+
   resize();
-  // open help slightly after load on desktop only
-  if(matchMedia('(min-width:900px)').matches){ setTimeout(()=>sheet.classList.add('open'), 400); }
 })();
 </script>
 </body>
